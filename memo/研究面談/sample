@@ -1,0 +1,86 @@
+添付された資料（研究進捗報告）の内容をテキストとして書き起こしました。
+
+[cite_start]**研究進捗報告** [cite: 1]
+[cite_start]伊藤恒平 [cite: 2]
+[cite_start]2026年4月7日 [cite: 3]
+
+---
+
+### [cite_start]1 基本情報 [cite: 4]
+* [cite_start]**報告日:** 2026年4月7日 [cite: 5]
+* [cite_start]**報告期間:** 研究開始時点から2026年4月7日まで [cite: 6]
+* [cite_start]**研究テーマ:** 災害現場での被災者探索ロボットの開発 [cite: 7]
+* [cite_start]**作成者:** 伊藤恒平 [cite: 7]
+
+### [cite_start]2 概要 [cite: 8]
+[cite_start]卒業論文の研究テーマとして、災害現場での被災者探索ロボットの開発を検討している [cite: 9][cite_start]。現時点では、被災者探索ロポット全体の完成よりも、瓦礫内を移動するための移動機構の開発と評価を中心に進める方針である [cite: 9]。
+
+[cite_start]災害現場では、瓦礫の中など人が安全に進入しにくい場所で被災者をできるだけ早く見つけることが重要である [cite: 10][cite_start]。そのため、本研究では、狭い隙間、段差、障害物、不整地などがある環境で走行できる移動機構を検討し、複数の機構を比較したうえで試作と実験を行う [cite: 10]。
+
+[cite_start]当初の試作完成目標は2026年9月末である [cite: 11][cite_start]。評価では、移動速度と走破性能を中心に扱う予定である [cite: 11][cite_start]。被災者探索用のセンサについては搭載を検討しているが、使用するセンサの種類や波長は未定であり、卒業論文では移動機構を主対象とする [cite: 11]。
+
+### [cite_start]3 現在の研究方針 [cite: 12]
+[cite_start]※図1（初回面談時点の研究方針）の構造は以下の通りです [cite: 26]。
+* [cite_start]**研究テーマ:** 被災者探索ロボット [cite: 21, 22]
+* [cite_start]**中心課題:** 瓦礫内移動機構 [cite: 23]
+* [cite_start]**比較:** 複数の移動機構 [cite: 20]
+* [cite_start]**評価:** 移動速度・走破性能 [cite: 27]
+* [cite_start]**目標:** 2026年9月末に初期試作 [cite: 24, 25]
+
+### [cite_start]4 実施したこと [cite: 13]
+* [cite_start]研究管理用のリポジトリを作成し、研究メモ、プロポーザル、進捗報告、発表資料、実験結果、コード、データ、参考資料、作業ログを管理するためのディレクトリ構成を整えた [cite: 14]。
+* [cite_start]研究プロポーザルのテンプレートを作成した [cite: 15]。
+* [cite_start]「災害現場での被災者探索ロボットの開発」をテーマとする研究プロポーザル草案を作成した [cite: 16]。
+* [cite_start]研究の中心を、被災者探索ロボット全体ではなく、瓦礫内を移動する移動機構の開発と評価に置く方針として整理した [cite: 17]。
+* [cite_start]初期試作の完成目標を2026年9月末とした [cite: 18]。
+* [cite_start]評価対象として、移動速度と走破性能を重視する方針を整理した [cite: 28]。
+* [cite_start]利用可能な研究室機材・材料として、3Dプリンタ、Arduino、Raspberry Pi、モータ、サーボ、カメラ、加工機、アクリル板、アルミ材を想定した [cite: 29]。
+
+### [cite_start]5 分かったこと [cite: 30]
+* [cite_start]卒業論文として扱う範囲は、被災者探索システム全体よりも、移動機構の開発と実験評価に絞る方が進めやすい [cite: 31]。
+* [cite_start]瓦礫内移動では、単に走行できるだけでなく、段差、隙間、障害物、不整地などの条件を分けて評価する必要がある [cite: 32]。
+* [cite_start]「あらゆるところを走破する性能」はそのままだと曖昧なため、通過できる条件、移動速度、転倒の有無、停止の有無など、実験で測れる指標に分解する必要がある [cite: 33]。
+* [cite_start]被災者探索用センサは搭載候補とするが、現段階ではセンサの種類や波長よりも、移動機構の成立性と評価方法を先に固める必要がある [cite: 34]。
+
+### [cite_start]6 根拠 [cite: 35]
+* [cite_start]proposals/disaster_response_robot_proposal.md [cite: 36]
+* [cite_start]proposals/research_proposal_template.md [cite: 37]
+* [cite_start]reports/progress_report_template.md [cite: 38]
+* [cite_start]RESEARCH_WORKFLOW.md [cite: 39]
+* [cite_start]COMMIT_RULES.md [cite: 40]
+
+### [cite_start]7 実験・分析結果 [cite: 42]
+[cite_start]現時点では実験は未実施である [cite: 43][cite_start]。今後、瓦礫内移動機構の移動速度と走破性能を評価する [cite: 43][cite_start]。実験条件は未定だが、段差、隙間、障害物、不整地などを想定している [cite: 43][cite_start]。実験前に、比較対象とする移動機構、模擬瓦礫環境、評価指標を決める必要がある [cite: 43]。
+
+### [cite_start]8 未解決事項・課題 [cite: 44]
+* [cite_start]比較対象とする移動機構がまだ決まっていない [cite: 45]。
+* [cite_start]被災者探索に使うセンサの種類と波長がまだ決まっていない [cite: 46]。
+* [cite_start]模擬瓦礫環境の具体的な設計がまだ決まっていない [cite: 47]。
+* [cite_start]移動速度と走破性能の評価指標がまだ具体化できていない [cite: 48]。
+* [cite_start]卒業論文全体のスケジュールがまだ月単位で整理できていない [cite: 49]。
+* [cite_start]正式な提出先、提出形式、分量などの条件を確認する必要がある [cite: 50]。
+
+### [cite_start]9 次にすること [cite: 51]
+* [cite_start]先行研究と既存の災害対応ロボット事例を調査する [cite: 52]。
+* [cite_start]クローラ、車輪、脚、ヘビ型、柔軟体、スクリュー、複合型などから、比較対象とする移動機構の候補を絞り込む [cite: 53]。
+* [cite_start]瓦礫内移動に必要な条件を、段差、隙間、障害物、不整地などに分けて整理する [cite: 54]。
+* [cite_start]移動速度と走破性能を、実験で測れる評価指標に分解する [cite: 55]。
+* [cite_start]模擬瓦礫環境の案を作る [cite: 56]。
+* [cite_start]2026年9月末の初期試作完成に向けて、月単位の試作スケジュールを作る [cite: 57]。
+
+### [cite_start]10 指導・相談したいこと [cite: 58]
+* [cite_start]卒業論文として、移動機構の開発と評価に研究範囲を絞ってよいか [cite: 59]。
+* [cite_start]比較対象にする移動機構は、どの方式を優先すべきか [cite: 60]。
+* [cite_start]走破性能の評価として、どの条件を重視すべきか [cite: 61]。
+* [cite_start]被災者探索用センサは、卒業論文の主対象に含めるべきか、搭載可能性の検討に留めるべきか [cite: 62]。
+* [cite_start]2026年9月末に初期試作を完成させる計画で妥当か [cite: 63]。
+
+### [cite_start]11 コミット履歴メモ [cite: 64]
+* [cite_start]7af10b8 Add agent instructions [cite: 65]
+* [cite_start]de2768d Add commit rules [cite: 66]
+* [cite_start]dad5df6 Add research workflow [cite: 67]
+* [cite_start]147b3aa Create research directory structure [cite: 69]
+* [cite_start]4049544 Add progress report template [cite: 69]
+* [cite_start]f77b912 Add research proposal template [cite: 69]
+* [cite_start]26558a0 Draft disaster response robot proposal [cite: 69]
+* [cite_start]53ce8fe Refine disaster response robot proposal [cite: 69]
