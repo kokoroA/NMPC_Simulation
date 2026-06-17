@@ -1,2 +1,11 @@
 # PowerPoint（容量が大きく GitHub の制限に抵触しやすい）
 *.pptx
+
+# Python 仮想環境（GitHub 100MB 制限を超えるバイナリを含むため除外）
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
