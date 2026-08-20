@@ -161,9 +161,28 @@ date +%Y%m%d
                            └→ 昇格判定（→ repository_rules.md / global_drafts.md）
 ```
 
-## 5. このスキル自体の保守
+## 5. 発火の仕組み（どうやってこのルーチンが起動するか）
+
+このスキルは「AI が読む気になったら読む」ものではなく、**2 系統で強制的に注入**される。
+
+| 系統 | 実体 | 効果 |
+|---|---|---|
+| **① `@` import** | `CLAUDE.md` 内の `@skills.md` / `@docs/ai/repository_rules.md` | セッション開始時に両ファイルの**中身が展開**される。読み忘れが構造的に起きない |
+| **③ SessionStart フック** | `.claude/settings.json` → `.claude/hooks/session_start_memory.py` | 開始時ルーチンの要約と **`docs/ai/decisions/` の最新一覧**をコンテキストへ注入する |
+
+フックスクリプトは自身の位置からリポジトリルートを解決するため cwd に依存せず、
+失敗しても常に exit 0 を返してセッション起動を妨げない。
+設定を変更・無効化したい場合は `/hooks` から確認・編集できる。
+
+Cline / Cursor には `@` import もフックも無いため、`.clinerules` / `.cursorrules`
+（＝ `repository_rules.md` へのシンボリックリンク）経由の常時参照のみが効く。
+そのため **`repository_rules.md` 単体で最低限の運用ルールが伝わる状態**を保つこと。
+
+## 6. このスキル自体の保守
 
 - ルーチンを回して**機能しなかった手順**を見つけたら、本ファイルを更新し、その変更理由を decision として残す。
 - `.clinerules` / `.cursorrules` は `docs/ai/repository_rules.md` へのシンボリックリンクである。
   内容をコピーして二重管理してはならない（片方だけ古くなる事故を構造的に防ぐため）。
-- Claude Code では `CLAUDE.md` が入口となり、本ファイルと `repository_rules.md` を指す。
+- `CLAUDE.md` は `@` import を持つ入口。ここにルール本文を書き足さないこと（実体は `docs/ai/` に置く）。
+- フックの出力文言を変えたら、`echo '{}' | python3 .claude/hooks/session_start_memory.py` で
+  JSON が壊れていないことを必ず確認する。

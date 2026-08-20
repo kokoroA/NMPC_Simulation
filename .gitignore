@@ -9,3 +9,7 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Claude Code のワークツリー実体（設定・フックは追跡するがここは除外）
+.claude/worktrees/
+.claude/settings.local.json

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/session_start_memory.py\" 2>/dev/null || true",
+            "timeout": 10,
+            "statusMessage": "外部記憶（docs/ai）を読み込み中"
+          }
+        ]
+      }
+    ]
+  }
+}
