@@ -42,7 +42,8 @@ grep -ril "検索語" docs/ai/decisions/ | head -20
 ls docs/ai/decisions/ | sort -r | head -10
 ```
 
-検索語の例: `ADMM`, `SR2`, `bumpless`, `FDI`, `Pico`, `sanity_check`, `u_baseline`, `発散`, `飽和`
+検索語の例: `ADMM`, `SR2`, `TR1`, `RTI`, `Pico`, `RP2350`, `core1`, `N=`, `iter`, `duty`,
+`EIGEN_NO_MALLOC`, `スタック`, `飽和`, `発散`, `FDI`, `故障`, `sysid`
 
 - **ヒットしたら全文を読む。** 「同じ失敗を再現しない」ことがこの層の唯一の存在理由である。
 - 過去に否決された案が見つかった場合、**同じ案を再提案しない**。再提案するなら「当時と何が変わったか」を明示する。
@@ -50,9 +51,18 @@ ls docs/ai/decisions/ | sort -r | head -10
 
 ### Step 1-3. 隣接する一次情報を確認する
 
-- 最新の進捗・課題: `memo/研究面談/` の**日付が最も新しいファイル**（現状の正）
-- 設計仕様: `program/NMPC_simulation/nmpc_simulation_report.md`
-- アルゴリズム根拠: `memo/研究メモ/rti_tr1_sr2_nmpc_control_flow.md`
+**現在は実機実験フェーズ。主戦場は `Benzen_NMPC`。** 迷ったら実機側の一次情報を先に見る。
+
+| 知りたいこと | 見る場所 |
+|---|---|
+| 実機の設計・アーキテクチャ | `program/pico/pico-sdk2/pico-sdk/Benzen_NMPC/docs/NMPC_REPORT.md` |
+| 実機の現行パラメータ（**唯一の正**） | `Benzen_NMPC/nmpc_params.hpp` |
+| モータ対応表・移植計画 | `Benzen_NMPC/plan.md`（`N` の記述は古い。params が正） |
+| システム同定の結果 | `Benzen_NMPC/docs/`（推力・モータ遅れ・慣性モーメント） |
+| 対外的な主張と実測値 | `documents/論文/日本航空宇宙学会/原稿/paper.typ` |
+| シミュの設計仕様 | `program/NMPC_simulation/nmpc_simulation_report.md` |
+| アルゴリズムの根拠 | `memo/研究メモ/rti_tr1_sr2_nmpc_control_flow.md` |
+| 最新の進捗・課題 | `memo/研究面談/` の日付が最も新しいファイル |
 
 ### Step 1-4. 着手宣言
 
@@ -75,6 +85,14 @@ ls docs/ai/decisions/ | sort -r | head -10
 
 - typo 修正、フォーマット、リネームなど再現価値のない作業
 - コードや git log を読めば分かること（差分の説明は書かない。**「なぜ」だけを書く**）
+
+### ⚠ サブモジュールで作業した場合も、記録先は親リポジトリ
+
+`Benzen_NMPC` は `pico-sdk` サブモジュール配下にあり、親リポジトリからは追跡されない。
+**コードの変更はサブモジュール側でコミットするが、decision は必ず親の
+`docs/ai/decisions/` に書く**（記憶は 1 か所に集約しないと grep で引けなくなるため）。
+実機のコード変更を伴う decision には、対象ファイル名に加えて
+「サブモジュール側のコミットハッシュ」も書き残しておくとよい。
 
 ### 手順
 
