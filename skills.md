@@ -190,11 +190,30 @@ date +%Y%m%d
 
 フックスクリプトは自身の位置からリポジトリルートを解決するため cwd に依存せず、
 失敗しても常に exit 0 を返してセッション起動を妨げない。
+**2026-08-22 のセッション開始時に実際の発火を確認済み。**
 設定を変更・無効化したい場合は `/hooks` から確認・編集できる。
 
-Cline / Cursor には `@` import もフックも無いため、`.clinerules` / `.cursorrules`
-（＝ `repository_rules.md` へのシンボリックリンク）経由の常時参照のみが効く。
-そのため **`repository_rules.md` 単体で最低限の運用ルールが伝わる状態**を保つこと。
+### 他の AI ツールへの配布
+
+Claude Code 以外は `@` import もフックも持たないため、**各ツールの入口ファイル**を用意している。
+二重管理を避けるため、実体は `docs/ai/repository_rules.md` 1 つで、他はすべてシンボリックリンク。
+
+| ツール | 入口ファイル | 実体 |
+|---|---|---|
+| Claude Code | `CLAUDE.md` + `.claude/settings.json` | 実体（`@` import + フック） |
+| Cline | `.clinerules` | → `docs/ai/repository_rules.md` |
+| Cursor（旧形式） | `.cursorrules` | → 同上 |
+| Cursor（現行形式） | `.cursor/rules/research-memory.mdc` | 実体（frontmatter が必要なため。本文は `@` 参照に留める） |
+| GitHub Copilot | `.github/copilot-instructions.md` | → 同上 |
+| Codex / Gemini CLI / Zed 等 | `AGENTS.md` | → 同上 |
+
+**したがって `repository_rules.md` は「単体で最低限の運用が回る」状態を維持しなければならない。**
+そのために §0 として着手前の grep と完了後の記録を埋め込んである。**§0 を削らないこと。**
+
+⚠ **ChatGPT（web）などリポジトリを読まないツールには原理的に届かない。**
+その場合は `repository_rules.md` を手で貼り付けるしかない。
+⚠ シンボリックリンクを辿らないツールが将来現れたら、そのツールだけ実体コピーにするのではなく、
+まず**リンクが機能しているかを確認**する（コピーは片方が古くなる事故を必ず起こす）。
 
 ## 6. このスキル自体の保守
 

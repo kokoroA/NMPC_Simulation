@@ -1,0 +1,1 @@
+docs/ai/repository_rules.md
