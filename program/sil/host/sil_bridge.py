@@ -26,9 +26,10 @@ class Sil:
     注意: グローバル変数を持つ C++ コードなので、1 プロセスに 1 つだけ。
     """
 
-    def __init__(self, build_dir: Path | None = None) -> None:
+    def __init__(self, build_dir: Path | None = None, verbose: bool = False) -> None:
         self._lib = ctypes.CDLL(str(_find_library(build_dir)))
         self._bind()
+        self._lib.sil_set_stdout(ctypes.c_int(1 if verbose else 0))
         rc = self._lib.sil_init()
         if rc != 0:
             raise RuntimeError(f"sil_init() 失敗: rc={rc}")
@@ -37,6 +38,7 @@ class Sil:
         L = self._lib
         f3 = ctypes.c_float * 3
         L.sil_init.restype = ctypes.c_int
+        L.sil_set_stdout.argtypes = [ctypes.c_int]
         L.sil_set_imu.argtypes = [f3, f3, f3]
         L.sil_set_range_mm.argtypes = [ctypes.c_uint16]
         L.sil_set_rc.argtypes = [ctypes.c_uint16 * 18]
@@ -104,6 +106,20 @@ class Sil:
     @property
     def time_us(self) -> int:
         return self._lib.sil_get_time_us()
+
+    DEBUG_FIELDS = ("Ax","Ay","Az","Mx","My","Mz","Xe0","Xe1","Xe2","Xe3","MN","ME","MD","Phi_raw","Theta_raw","Psi_raw",
+                    "Phi_bias","Theta_bias","Psi_bias","T_ref")
+
+    def debug(self):
+        arr = (ctypes.c_float * 20)()
+        self._lib.sil_get_debug(arr)
+        return dict(zip(self.DEBUG_FIELDS, arr))
+
+    def sched_counts(self):
+        """(core1 起動回数, core1 待ち突入回数)"""
+        rel = ctypes.c_uint64(); acq = ctypes.c_uint64()
+        self._lib.sil_get_sched_counts(ctypes.byref(rel), ctypes.byref(acq))
+        return rel.value, acq.value
 
     @property
     def last_loop_ns(self) -> int:

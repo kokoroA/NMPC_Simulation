@@ -8,6 +8,9 @@ extern "C" {
 #endif
 
 // --- ライフサイクル -------------------------------------------------------
+// ファームの printf を /dev/null へ捨てる（既定は捨てる）。
+// control.cpp:958 が 400Hz で Chdata[5] を印字するため、そのままだと洪水になる。
+void sil_set_stdout(int enabled);
 // 実機 main() の初期化シーケンスを再現し、core1 を起動する
 int  sil_init(void);
 void sil_shutdown(void);
@@ -37,6 +40,12 @@ uint64_t sil_get_time_us(void);
 // 実機時間ではない。換算は host 側のコストモデルが行う。
 uint64_t sil_get_last_loop_ns(void);
 uint64_t sil_get_last_core1_ns(void);
+
+// --- 診断 -----------------------------------------------------------------
+// core1 起動回数 / core1 が待ちに入った回数
+void sil_get_sched_counts(uint64_t *release_count, uint64_t *acquire_entry_count);
+// [Ax,Ay,Az, Mx,My,Mz, Xe0..Xe3, MN,ME,MD, Phi,Theta,Psi, Phi_bias,Theta_bias,Psi_bias, T_ref]
+void sil_get_debug(float out[20]);
 
 #ifdef __cplusplus
 }

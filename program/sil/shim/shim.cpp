@@ -100,9 +100,15 @@ struct SemImpl {
     std::mutex m;
     std::condition_variable cv;
     int permits = 0;
-    // core1 が acquire 待ちに入っているか
-    std::atomic<bool> waiting{false};
 };
+
+// 完了ハンドシェイク用のカウンタ
+//   release_count      : core0 が core1 を起動した回数
+//   acquire_entry_count: core1 が「待ちに入った」回数
+// core1 のループは acquire -> 仕事 -> acquire なので、
+// 「acquire に再突入した」= 「直前の仕事が完了した」を意味する。
+std::atomic<uint64_t> g_release_count{0};
+std::atomic<uint64_t> g_acquire_entry_count{0};
 SemImpl g_sem_pool[4];
 int g_sem_used = 0;
 
@@ -118,6 +124,7 @@ void sem_init(semaphore_t *sem, int16_t initial, int16_t) {
 void sem_release(semaphore_t *sem) {
     SemImpl *im = impl_of(sem);
     { std::lock_guard<std::mutex> lk(im->m); im->permits++; }
+    g_release_count.fetch_add(1);
     im->cv.notify_one();
 }
 void sem_reset(semaphore_t *sem, int16_t permits) {
@@ -128,9 +135,9 @@ void sem_reset(semaphore_t *sem, int16_t permits) {
 void sem_acquire_blocking(semaphore_t *sem) {
     SemImpl *im = impl_of(sem);
     std::unique_lock<std::mutex> lk(im->m);
-    im->waiting.store(true);
+    // 「待ちに入った」= 直前の 1 周期分の仕事が終わった
+    g_acquire_entry_count.fetch_add(1);
     im->cv.wait(lk, [im] { return im->permits > 0; });
-    im->waiting.store(false);
     im->permits--;
 }
 bool sem_try_acquire(semaphore_t *sem) {
@@ -156,17 +163,18 @@ void multicore_launch_core1(void (*entry)(void)) {
 }
 void multicore_reset_core1(void) {}
 
-// core1 が sem 待ちに戻るまでブロック（1 tick の完了を保証する）
-void sil_core1_wait_idle(void) {
+// SIL 専用: 1 tick の開始時にカウンタを読む
+void sil_sched_snapshot(uint64_t *release_count, uint64_t *acquire_entry_count) {
+    *release_count = g_release_count.load();
+    *acquire_entry_count = g_acquire_entry_count.load();
+}
+
+// core1 が起動されたなら、その 1 周期が終わる（= acquire に再突入する）まで待つ。
+// これをしないと core0 が core1 を追い越し、EKF が一度も走らないまま進む。
+void sil_core1_wait_done(uint64_t release_before, uint64_t acquire_entry_before) {
     if (!g_core1_running.load()) return;
-    for (int i = 0; i < 4; ++i) {
-        SemImpl *im = &g_sem_pool[i];
-        if (im->waiting.load()) return;
-    }
-    // まだ走っている間は譲る
-    for (int spin = 0; spin < 100000; ++spin) {
-        for (int i = 0; i < 4; ++i)
-            if (g_sem_pool[i].waiting.load()) return;
+    if (g_release_count.load() == release_before) return;   // 起動していない
+    while (g_acquire_entry_count.load() <= acquire_entry_before) {
         std::this_thread::yield();
     }
 }

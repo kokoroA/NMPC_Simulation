@@ -16,6 +16,7 @@
 #include "hardware/irq.h"
 
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 
 // --- 実機 pico_copter.cpp が持っていたグローバル --------------------------
@@ -52,6 +53,10 @@ extern float FR_duty, FL_duty, MR_duty, ML_duty, RR_duty, RL_duty;
 extern float Phi_bias, Theta_bias, Psi_bias;
 extern float Pbias, Qbias, Rbias;
 extern float Wp, Wq, Wr;
+extern float Ax, Ay, Az, Mx, My, Mz;
+extern float MN, ME, MD;
+#include <Eigen/Dense>
+extern Eigen::Matrix<float, 7, 1> Xe;
 
 // --- PWM スライス割り当て -------------------------------------------------
 // ⚠ pwm.cpp のスライス名は実際のモータ位置と一致していない。
@@ -79,8 +84,23 @@ bool g_inited = false;
 // =========================================================================
 // ライフサイクル
 // =========================================================================
+extern "C" void sil_set_stdout(int enabled) {
+    // freopen は fd 1 ごと差し替えてしまい、ホスト(Python)の出力まで消える。
+    // macOS/glibc とも stdout は代入可能な FILE* なので、ポインタだけ退避・差替する。
+    static FILE *real_stdout = nullptr;
+    static FILE *devnull = nullptr;
+    if (real_stdout == nullptr) real_stdout = stdout;
+    if (enabled) {
+        stdout = real_stdout;
+    } else {
+        if (devnull == nullptr) devnull = std::fopen("/dev/null", "w");
+        if (devnull != nullptr) stdout = devnull;
+    }
+}
+
 extern "C" int sil_init(void) {
     if (g_inited) return 0;
+    sil_set_stdout(0);          // 既定でファームの printf を捨てる
 
     // 実機 main() と同じ順序
     pwm_pins_early_init();
@@ -125,14 +145,17 @@ extern "C" void sil_tick_400hz(void) {
     // 実機 PWM 周期 400Hz = 2500us
     sil_time_advance_us(2500);
 
+    uint64_t rel_before = 0, acq_before = 0;
+    sil_sched_snapshot(&rel_before, &acq_before);
+
     auto t0 = std::chrono::steady_clock::now();
     g_loop400();                 // = loop_400Hz（core0 側）
     auto t1 = std::chrono::steady_clock::now();
     g_last_loop_ns = (uint64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
 
-    // core1 が起動されていれば、その 100Hz 処理の完了まで待つ（決定性の確保）
+    // core1 が起動されたなら、その 100Hz 処理の完了まで待つ（決定性の確保）
     auto t2 = std::chrono::steady_clock::now();
-    sil_core1_wait_idle();
+    sil_core1_wait_done(rel_before, acq_before);
     auto t3 = std::chrono::steady_clock::now();
     g_last_core1_ns = (uint64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(t3 - t2).count();
 
@@ -168,3 +191,17 @@ extern "C" uint8_t  sil_get_flight_mode(void)  { return Flight_mode; }
 extern "C" uint64_t sil_get_time_us(void)      { return time_us_64(); }
 extern "C" uint64_t sil_get_last_loop_ns(void) { return g_last_loop_ns; }
 extern "C" uint64_t sil_get_last_core1_ns(void){ return g_last_core1_ns; }
+
+extern "C" void sil_get_sched_counts(uint64_t *rel, uint64_t *acq) {
+    sil_sched_snapshot(rel, acq);
+}
+
+extern "C" void sil_get_debug(float o[20]) {
+    o[0]=Ax; o[1]=Ay; o[2]=Az;
+    o[3]=Mx; o[4]=My; o[5]=Mz;
+    o[6]=Xe(0,0); o[7]=Xe(1,0); o[8]=Xe(2,0); o[9]=Xe(3,0);
+    o[10]=MN; o[11]=ME; o[12]=MD;
+    o[13]=Phi;       o[14]=Theta;       o[15]=Psi;
+    o[16]=Phi_bias;  o[17]=Theta_bias;  o[18]=Psi_bias;
+    o[19]=T_ref;
+}
