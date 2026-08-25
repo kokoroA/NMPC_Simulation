@@ -67,7 +67,7 @@ def plot_overview(data, meta, out_path: Path, show=False):
         f"SIL run — {meta.get('note') or ''}\n"
         f"throttle={meta.get('throttle')}  "
         f"T_max={meta.get('plant_params', {}).get('T_max')} N  "
-        f"fw={str(meta.get('firmware_git'))[:8]}",
+        f"fw={meta.get('firmware_source_sha256', '?')}",
         fontsize=11)
 
     # 1. 姿勢: 真値 vs 推定 vs 目標

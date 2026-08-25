@@ -44,12 +44,39 @@ python3 -c "import sys; sys.path.insert(0,'host'); from sil_bridge import Sil; s
 ../NMPC_simulation/.venv/bin/python host/plots.py runs/run_...
 ```
 
+## WebUI（M4）
+
+```bash
+../NMPC_simulation/.venv/bin/python host/webserver.py --port 8420
+```
+
+ブラウザで `http://127.0.0.1:8420/` を開く。起動時にウォームアップ(6000 tick)を
+自動で早送りするので、すぐ `Space` でアームできる。
+
+**依存ゼロ**で実装している（FastAPI も three.js も使わない）:
+標準ライブラリの `http.server` + Server-Sent Events、3D は Canvas 2D に自前投影。
+オフラインでも動く。
+
+| 操作 | キー |
+|---|---|
+| スロットル | `W` / `S`（タップでも押しっぱなしでも可） |
+| エルロン | `←` / `→` |
+| エレベータ | `↑` / `↓` |
+| ラダー（ヨー角速度） | `A` / `D` |
+| アーム | `Space` |
+| 姿勢リセット | `R` |
+| 一時停止 | `P` |
+
+マウス／タッチの仮想スティックも同じ入力に合流する。3D ビューはドラッグで回転、
+ホイールでズーム。`--speed` で実時間倍率を変えられる。
+
 ## 検証スイート
 
 ```bash
 ../NMPC_simulation/.venv/bin/python host/test_m1_sensors.py       # センサ符号・単位と EKF
 ../NMPC_simulation/.venv/bin/python host/test_m2_closed_loop.py   # 姿勢閉ループ
 ../NMPC_simulation/.venv/bin/python host/test_m3_logging.py       # ログと描画
+../NMPC_simulation/.venv/bin/python host/test_m4_webui.py         # WebUI（別プロセスで起動）
 ```
 
 ⚠ Python は `NMPC_simulation/.venv`（numpy・matplotlib 入り）を使う。

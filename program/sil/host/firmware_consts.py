@@ -46,7 +46,11 @@ def attitude_live(ratio, thrust_delta_ratio=0.0):
 
 
 # --- 使えるスロットル帯 ----------------------------------------------------
-# duty = T_REF_THROTTLE_GAIN*BATTERY*ratio*T_REF_COE なので
-THROTTLE_MOTORS_ON = DISABLE_DUTY / T_REF_THROTTLE_GAIN            # = 0.200
-THROTTLE_DUTY_SATURATES = MAX_DUTY / (T_REF_THROTTLE_GAIN * BATTERY_VOLTAGE * T_REF_COE)
-DUTY_FLOOR = DISABLE_DUTY * BATTERY_VOLTAGE * T_REF_COE            # = 0.444
+# 2026-08-25 の control.cpp 修正で停止判定が単位整合した:
+#   旧: T_ref / BATTERY_VOLTAGE < Disable_duty   (電圧比と duty を比較していた)
+#   新: common_duty = T_ref * T_ref_coe;  common_duty < Disable_duty
+# これにより duty 下限が 0.444 -> 0.100 に下がり、ホバー点が到達可能になった。
+_DUTY_PER_RATIO = T_REF_THROTTLE_GAIN * BATTERY_VOLTAGE * T_REF_COE   # = 2.22
+THROTTLE_MOTORS_ON = DISABLE_DUTY / _DUTY_PER_RATIO                   # = 0.045
+THROTTLE_DUTY_SATURATES = MAX_DUTY / _DUTY_PER_RATIO                  # = 0.428
+DUTY_FLOOR = DISABLE_DUTY                                             # = 0.100

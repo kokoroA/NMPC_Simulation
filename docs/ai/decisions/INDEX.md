@@ -5,6 +5,7 @@
 
 | 日付 | ファイル | 要約 |
 |---|---|---|
+| 2026-08-25 | [20260825_sil_m4_webui_and_stop_threshold.md](20260825_sil_m4_webui_and_stop_threshold.md) | SIL M4（依存ゼロ WebUI）。停止判定を common_duty 基準へ修正しホバー到達可能に。Flight_duty が旧基準のまま残る帯域と、ファームが未追跡である問題を発見 |
 | 2026-08-25 | [20260825_sil_m3_logging.md](20260825_sil_m3_logging.md) | SIL M3 完了。npz ログと描画基盤。T_ref 係数を 0.5 に訂正（実効は control.cpp:995）。使えるスロットル帯は 0.200〜0.428 のみ |
 | 2026-08-25 | [20260825_sil_m2_closed_loop.md](20260825_sil_m2_closed_loop.md) | SIL M2 完了。姿勢閉ループ成立。ロール軸のゲイン非対称と、ホバー点がモータ始動閾値より下にある（T_max 過大の疑い）を発見 |
 | 2026-08-25 | [20260825_sil_m1_sensor_ekf_verified.md](20260825_sil_m1_sensor_ekf_verified.md) | SIL M1 完了。センサ符号・単位を検証し EKF 追従を誤差0.01degで確認。スロットル低時の姿勢ゼロ点取得とヨー未推定の仕様を記録 |

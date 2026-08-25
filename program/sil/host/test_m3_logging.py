@@ -33,7 +33,7 @@ REQUIRED_COLS = {
     "duty_fr", "duty_fl", "duty_mr", "duty_ml", "duty_rr", "duty_rl",
     "host_core0_ns", "host_core1_ns",
 }
-REQUIRED_META = {"note", "throttle", "firmware_git", "sil_git",
+REQUIRED_META = {"note", "throttle", "firmware_source_sha256", "sil_git",
                  "plant_params", "firmware_consts", "rows", "created"}
 
 
@@ -94,8 +94,9 @@ def main() -> int:
         missing_meta = REQUIRED_META - set(meta.keys())
         check(not missing_meta, "meta に必要なキーが揃う",
               f"欠落={missing_meta}" if missing_meta else "")
-        check(bool(meta.get("firmware_git")), "ファームの git hash が記録される",
-              str(meta.get("firmware_git"))[:12])
+        check(bool(meta.get("firmware_source_sha256")),
+              "ファームのソース内容ハッシュが記録される（未追跡のため git hash では特定できない）",
+              f"{meta.get('firmware_source_sha256')} / {meta.get('firmware_source_files')} ファイル")
         check(isinstance(meta.get("throttle"), float) and 0.0 <= meta["throttle"] <= 1.0,
               "throttle が比率(0..1)で記録される", str(meta.get("throttle")))
         check("T_max" in meta.get("plant_params", {}), "機体パラメータが記録される",

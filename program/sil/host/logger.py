@@ -27,8 +27,27 @@ import numpy as np
 DEFAULT_ROOT = Path(__file__).resolve().parent.parent / "runs"
 
 
-def _firmware_git_hash(fw_dir: Path) -> str | None:
-    """ファーム側（サブモジュール）のコミットハッシュ。再現性のために必須。"""
+def _firmware_source_hash(fw_dir: Path) -> dict:
+    """ファームのソース内容ハッシュ。
+
+    ⚠ `Benzen_new` / `Benzen_NMPC` は **どの git にも追跡されていない**
+    （pico-sdk サブモジュール内の未追跡ディレクトリ）。
+    したがって git hash ではファームの版を特定できない。
+    代わりに**ソースの内容ハッシュ**を取る。これが実質的な版識別子になる。
+    """
+    import hashlib
+    h = hashlib.sha256()
+    files = []
+    for pat in ("*.cpp", "*.hpp", "*.c", "*.h"):
+        files.extend(sorted(fw_dir.glob(pat)))
+    for f in files:
+        h.update(f.name.encode())
+        h.update(f.read_bytes())
+    return {"sha256": h.hexdigest()[:16], "files": len(files)}
+
+
+def _git_hash(fw_dir: Path) -> str | None:
+    """その場所を含む git リポジトリの HEAD。"""
     try:
         out = subprocess.run(
             ["git", "-C", str(fw_dir), "rev-parse", "HEAD"],
@@ -95,12 +114,17 @@ def build_meta(plant_params, throttle=None, note=None, fw_dir=None, extra=None) 
     fw_dir = Path(fw_dir) if fw_dir else (
         Path(__file__).resolve().parents[2] / "pico/pico-sdk2/pico-sdk/Benzen_new")
     import firmware_consts as fc
+    fw_hash = _firmware_source_hash(fw_dir)
     meta = {
         "note": note,
         "throttle": throttle,
         "firmware_dir": str(fw_dir),
-        "firmware_git": _firmware_git_hash(fw_dir),
-        "sil_git": _firmware_git_hash(Path(__file__).resolve().parents[2]),
+        # ファームは未追跡なのでソース内容ハッシュが実質の版識別子
+        "firmware_source_sha256": fw_hash["sha256"],
+        "firmware_source_files": fw_hash["files"],
+        # 参考: pico-sdk サブモジュールの HEAD（ファームの版ではない）
+        "pico_sdk_git": _git_hash(fw_dir),
+        "sil_git": _git_hash(Path(__file__).resolve().parents[2]),
         "plant_params": asdict(plant_params) if is_dataclass(plant_params) else str(plant_params),
         "firmware_consts": {
             k: getattr(fc, k) for k in
