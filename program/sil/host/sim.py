@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+import logger as _logger
 import rc
 from plant import AttitudePlant, PlantParams
 from sensors import SensorModel, euler_rates_to_body_rates
@@ -53,14 +54,27 @@ class ClosedLoop:
             st = self.sil.state()
             self.rows.append({
                 "t": self.t,
+                # --- 真値（プラント）---
                 "phi_true": pl.phi, "theta_true": pl.theta, "psi_true": pl.psi,
                 "p_true": p, "q_true": q, "r_true": r,
-                "phi_est": st["phi"], "theta_est": st["theta"],
-                "phi_ref": st["phi_ref"], "theta_ref": st["theta_ref"],
+                "pos_n": pl.pos[0], "pos_e": pl.pos[1], "alt": pl.altitude,
+                "vel_n": pl.vel[0], "vel_e": pl.vel[1], "vel_d": pl.vel[2],
+                # --- ファーム内部 ---
+                "phi_est": st["phi"], "theta_est": st["theta"], "psi_est": st["psi"],
+                "phi_ref": st["phi_ref"], "theta_ref": st["theta_ref"], "psi_ref": st["psi_ref"],
+                "p_est": st["p"], "q_est": st["q"], "r_est": st["r"],
                 "Pref": st["Pref"], "Qref": st["Qref"], "Rref": st["Rref"],
-                "T_ref": st["T_ref"], "alt": pl.altitude,
-                "arm": self.sil.arm_flag,
+                "P_com": st["P_com"], "Q_com": st["Q_com"], "R_com": st["R_com"],
+                "T_ref": st["T_ref"], "T_stick": st["T_stick"],
+                "arm": self.sil.arm_flag, "mode": self.sil.flight_mode,
+                # --- 操作入力 ---
+                "ch_rudder": self.ch[0], "ch_elevator": self.ch[1],
+                "ch_throttle": self.ch[2], "ch_aileron": self.ch[3],
+                # --- 出力 ---
                 **{f"duty_{n.lower()}": d for n, d in zip(("FR", "FL", "MR", "ML", "RR", "RL"), duty)},
+                # --- 計算コスト（ホスト実測。実機時間ではない）---
+                "host_core0_ns": self.sil.last_loop_ns,
+                "host_core1_ns": self.sil.last_core1_ns,
             })
         return duty
 
@@ -101,9 +115,19 @@ class ClosedLoop:
         self.plant.x[4] += dq
         self.plant.x[5] += dr
 
-    def to_dataframe(self):
-        try:
-            import pandas as pd
-        except ImportError:
-            return None
-        return pd.DataFrame(self.rows)
+    # --- 保存 -------------------------------------------------------------
+    def save_run(self, note=None, name=None, csv=False):
+        """ログを runs/ 配下へ保存する。meta にファームの git hash 等も残す。"""
+        lg = _logger.RunLogger()
+        for r in self.rows:
+            lg.append(r)
+        lo, hi = rc.CH_MIN[rc.THROTTLE], rc.CH_MAX[rc.THROTTLE]
+        thr_ratio = (self.ch[rc.THROTTLE] - lo) / float(hi - lo)
+        meta = _logger.build_meta(
+            self.plant.p,
+            throttle=round(thr_ratio, 4),
+            note=note,
+            extra={"dt": DT, "sim_seconds": self.t,
+                   "throttle_raw": self.ch[rc.THROTTLE]},
+        )
+        return lg.save(meta, name=name, csv=csv)

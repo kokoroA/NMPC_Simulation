@@ -21,6 +21,40 @@ Eigen が標準の場所に無い場合は `-DEIGEN_DIR=<path>` を渡す。
 python3 -c "import sys; sys.path.insert(0,'host'); from sil_bridge import Sil; s=Sil(); [s.tick() for _ in range(8)]; print(s.time_us, s.duty())"
 ```
 
+## デモ飛行とログ
+
+```bash
+../NMPC_simulation/.venv/bin/python host/run_m3_demo.py --csv
+```
+
+`runs/run_YYYYMMDD_HHMMSS/` に保存される:
+
+| ファイル | 中身 |
+|---|---|
+| `data.npz` | 全 44 列・400 Hz の生ログ（float32 圧縮。CSV の 1/8） |
+| `meta.json` | ファームの git hash・機体パラメータ・ファーム定数（再現用） |
+| `overview.png` | 姿勢/EKF誤差/角速度/duty/推力の時系列 |
+| `saturation.png` | duty の上下限張り付き率 |
+| `trajectory.png` | 軌跡（開ループ・参考） |
+
+既存ログの再描画:
+
+```bash
+../NMPC_simulation/.venv/bin/python host/plots.py            # 最新
+../NMPC_simulation/.venv/bin/python host/plots.py runs/run_...
+```
+
+## 検証スイート
+
+```bash
+../NMPC_simulation/.venv/bin/python host/test_m1_sensors.py       # センサ符号・単位と EKF
+../NMPC_simulation/.venv/bin/python host/test_m2_closed_loop.py   # 姿勢閉ループ
+../NMPC_simulation/.venv/bin/python host/test_m3_logging.py       # ログと描画
+```
+
+⚠ Python は `NMPC_simulation/.venv`（numpy・matplotlib 入り）を使う。
+システムの python3 には numpy が無い。
+
 ## 実機の計算資源レポート
 
 SIL はホスト上で動くため、**メモリ消費はホストのものであって実機のものではない**。
@@ -46,5 +80,10 @@ python3 host/resource_report.py ../pico/pico-sdk2/pico-sdk/Benzen_NMPC/build/pic
 - **core1 は実スレッド**。`angle_control()` は `while(1)` なので 1 回だけ呼ぶことができない。
   `sem` をホストの condition variable で実装し、完了ハンドシェイクで決定性を確保している。
 - **`pwm.cpp` は本物を使う**。`set_duty_*` のクリップ（0.01〜0.97）を実機と同じに保つため。
-- ⚠ `pwm.cpp` のスライス名は実際のモータ位置と一致していない
-  （`Slice_num_front`=FR/RR, `_middle`=FL/RL, `_rear`=MR/ML）。`api/sil_api.cpp` の対応表を正とする。
+- ⚠ `pwm.cpp` のスライス名は実際のモータ位置と一致していないが、**実機はこの結線で飛んでいる**。
+  変更しないこと。`api/sil_api.cpp` の対応表が実際の結線を反映している。
+- ⚠ **プラントの状態を直接書き換えないこと。** 外乱は `ClosedLoop.disturb_rates()` で角速度に与える。
+  姿勢だけ動かすと EKF がジャイロバイアスと誤解釈し、制御を誤診する。
+- ⚠ **`PlantParams.T_max` は未検証の較正パラメータ。** 実機のホバー duty を測ったら必ず更新すること。
+- 実機で使えるスロットル帯は **0.200〜0.428**（`firmware_consts.py` 参照）。
+  始動と同時に duty 0.444 へ跳ぶ。

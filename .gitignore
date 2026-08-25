@@ -16,3 +16,6 @@ __pycache__/
 
 # SIL ビルド成果物
 program/sil/build/
+
+# SIL の実行ログ（生成物）
+program/sil/runs/

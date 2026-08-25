@@ -5,6 +5,7 @@
 
 | 日付 | ファイル | 要約 |
 |---|---|---|
+| 2026-08-25 | [20260825_sil_m3_logging.md](20260825_sil_m3_logging.md) | SIL M3 完了。npz ログと描画基盤。T_ref 係数を 0.5 に訂正（実効は control.cpp:995）。使えるスロットル帯は 0.200〜0.428 のみ |
 | 2026-08-25 | [20260825_sil_m2_closed_loop.md](20260825_sil_m2_closed_loop.md) | SIL M2 完了。姿勢閉ループ成立。ロール軸のゲイン非対称と、ホバー点がモータ始動閾値より下にある（T_max 過大の疑い）を発見 |
 | 2026-08-25 | [20260825_sil_m1_sensor_ekf_verified.md](20260825_sil_m1_sensor_ekf_verified.md) | SIL M1 完了。センサ符号・単位を検証し EKF 追従を誤差0.01degで確認。スロットル低時の姿勢ゼロ点取得とヨー未推定の仕様を記録 |
 | 2026-08-25 | [20260825_sil_m0_firmware_on_host.md](20260825_sil_m0_firmware_on_host.md) | 実機ファームを無改造でホスト共有ライブラリ化（SIL M0）。実機 ELF から SRAM 実測: NMPC は 75.6% 使用、g_nmpc_ctx が 158 KB |

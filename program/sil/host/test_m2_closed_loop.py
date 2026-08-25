@@ -18,11 +18,12 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import rc
+import firmware_consts as fc
 from plant import PlantParams
 from sim import ClosedLoop
 
 DEG = np.pi / 180.0
-THROTTLE = 0.30          # Disable_duty(0.1) を超える最小限より少し上
+THROTTLE = 0.30          # 使えるスロットル帯 0.200〜0.428 の中央付近
 failures = []
 
 
@@ -41,19 +42,18 @@ def main() -> int:
 
     print("--- 0. 推力収支（実機パラメータの整合確認）---")
     p = PlantParams()
-    t_ref_at = lambda ratio: 0.7 * 7.4 * ratio
-    duty_at = lambda ratio: t_ref_at(ratio) * 0.6
-    # duty = 0.7*7.4*ratio*0.6 なので解析的に解ける
-    hover_ratio = p.hover_duty / (0.7 * 7.4 * 0.6)
-    min_flyable_ratio = 0.74 / (0.7 * 7.4)     # T_ref/BATTERY >= Disable_duty
-    print(f"  ホバー必要 duty     = {p.hover_duty:.4f}  (T_max={p.T_max} N)")
+    hover_ratio = p.hover_duty / (fc.T_REF_THROTTLE_GAIN * fc.BATTERY_VOLTAGE * fc.T_REF_COE)
+    print(f"  ホバー必要 duty     = {p.hover_duty:.4f}  (T_max={p.T_max} N, 指数={p.thrust_exponent})")
     print(f"  それに要るスロットル = {hover_ratio:.4f}")
-    print(f"  モータが回る最小     = {min_flyable_ratio:.4f}  -> duty {duty_at(min_flyable_ratio):.4f}")
-    reachable = hover_ratio >= min_flyable_ratio
-    if not reachable:
-        print(f"  ⚠ ホバー点がモータ始動閾値より下。T_max={p.T_max} N は過大の疑い。")
-        implied = p.mass * p.gravity / (6.0 * duty_at(min_flyable_ratio))
-        print(f"    最小飛行 duty でホバーする T_max = {implied:.3f} N")
+    print(f"  モータが回る最小     = {fc.THROTTLE_MOTORS_ON:.4f}  -> duty {fc.DUTY_FLOOR:.4f}")
+    print(f"  duty 上限に張り付く   = {fc.THROTTLE_DUTY_SATURATES:.4f}")
+    print(f"  -> 使えるスロットル帯 = {fc.THROTTLE_MOTORS_ON:.3f} 〜 {fc.THROTTLE_DUTY_SATURATES:.3f}"
+          f" (ストロークの {100*(fc.THROTTLE_DUTY_SATURATES-fc.THROTTLE_MOTORS_ON):.0f}%)")
+    if hover_ratio < fc.THROTTLE_MOTORS_ON:
+        print(f"  ⚠ ホバー点がモータ始動閾値より下。始動と同時に duty {fc.DUTY_FLOOR:.3f} へ跳ぶ。")
+        print(f"    最小飛行 duty {fc.DUTY_FLOOR:.3f} でホバーする T_max = "
+              f"{p.T_max_for_hover_at(fc.DUTY_FLOOR):.3f} N（線形仮定）")
+        print(f"    T_max が実測でこれより大きいなら、線形推力仮定 (thrust_exponent=1.0) の側が疑わしい。")
 
     print("\n--- 1. アームと水平保持 ---")
     cl = ClosedLoop()
