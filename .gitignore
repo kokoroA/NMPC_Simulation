@@ -13,3 +13,6 @@ __pycache__/
 # Claude Code のワークツリー実体（設定・フックは追跡するがここは除外）
 .claude/worktrees/
 .claude/settings.local.json
+
+# SIL ビルド成果物
+program/sil/build/
