@@ -51,3 +51,33 @@ def with_throttle(ch: list[int], ratio: float) -> list[int]:
     lo, hi = CH_MIN[2], CH_MAX[2]
     out[THROTTLE] = int(lo + (hi - lo) * max(0.0, min(1.0, ratio)))
     return out
+
+
+# --- 目標姿勢 -> スティック値 --------------------------------------------
+# control.cpp:1299,1304
+#   Phi_ref   = Phi_trim   + 0.8*pi * (Chdata[3]-mid4)*2/(CH4MAX-CH4MIN)
+#   Theta_ref = Theta_trim + 0.3*pi * (Chdata[1]-mid2)*2/(CH2MAX-CH2MIN)
+import math
+
+ROLL_FULL_SCALE_RAD = 0.8 * math.pi     # エルロン全舵での Phi_ref
+PITCH_FULL_SCALE_RAD = 0.3 * math.pi    # エレベータ全舵での Theta_ref
+
+
+def with_roll_ref(ch, rad):
+    """Phi_ref [rad] になるようエルロン(Chdata[3])を設定した複製を返す。"""
+    out = list(ch)
+    mid = (CH_MAX[3] + CH_MIN[3]) * 0.5
+    half = (CH_MAX[3] - CH_MIN[3]) * 0.5
+    u = max(-1.0, min(1.0, rad / ROLL_FULL_SCALE_RAD))
+    out[AILERON] = int(round(mid + u * half))
+    return out
+
+
+def with_pitch_ref(ch, rad):
+    """Theta_ref [rad] になるようエレベータ(Chdata[1])を設定した複製を返す。"""
+    out = list(ch)
+    mid = (CH_MAX[1] + CH_MIN[1]) * 0.5
+    half = (CH_MAX[1] - CH_MIN[1]) * 0.5
+    u = max(-1.0, min(1.0, rad / PITCH_FULL_SCALE_RAD))
+    out[ELEVATOR] = int(round(mid + u * half))
+    return out

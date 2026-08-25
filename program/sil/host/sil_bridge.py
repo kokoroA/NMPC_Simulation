@@ -20,13 +20,24 @@ def _find_library(build_dir: Path | None = None) -> Path:
     raise FileNotFoundError(f"SIL ライブラリが見つかりません: {base}")
 
 
+_INSTANTIATED = False
+
+
 class Sil:
     """実機ファームの 1 インスタンス。
 
     注意: グローバル変数を持つ C++ コードなので、1 プロセスに 1 つだけ。
+    2 個目を作ると 1 個目の続きを掴むだけで、初期化されない。
     """
 
     def __init__(self, build_dir: Path | None = None, verbose: bool = False) -> None:
+        global _INSTANTIATED
+        if _INSTANTIATED:
+            raise RuntimeError(
+                "Sil は 1 プロセスに 1 つだけ。ファームはグローバル状態を持つため、"
+                "2 個目は初期化されず 1 個目の続きを掴む。"
+                "別条件で試すならプロセスを分けること。")
+        _INSTANTIATED = True
         self._lib = ctypes.CDLL(str(_find_library(build_dir)))
         self._bind()
         self._lib.sil_set_stdout(ctypes.c_int(1 if verbose else 0))
