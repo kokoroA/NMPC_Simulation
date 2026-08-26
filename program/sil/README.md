@@ -3,6 +3,9 @@
 実機に書き込むのと**同一の C/C++ ソース**を PC 上で動かす。
 `control.cpp` / `pid.cpp` / `ekf.cpp` / `auto_maneuvers.cpp` は一行も変更しない。
 
+**使い方の詳細は [`USAGE.md`](USAGE.md) を参照してください。**
+（Python 環境の準備・起動・操作・設定・トラブルシューティング・既知の制約）
+
 計画書: [`docs/sil_simulator_plan.md`](../../docs/sil_simulator_plan.md)
 
 ## 実機ファームを変更したときの反映手順
