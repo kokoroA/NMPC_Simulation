@@ -147,8 +147,13 @@ def load(run_dir) -> tuple[dict[str, np.ndarray], dict]:
 
 
 def latest_run(root: Path | None = None) -> Path:
+    """最後に保存されたランを返す。
+
+    名前順ではなく**更新時刻順**にする。`run_test` のような名前付きランが
+    `run_20260826_...` より後ろに並んでしまうため。
+    """
     root = Path(root) if root else DEFAULT_ROOT
-    runs = sorted(p for p in root.glob("run_*") if (p / "data.npz").exists())
+    runs = [p for p in root.glob("run_*") if (p / "data.npz").exists()]
     if not runs:
         raise FileNotFoundError(f"ランが見つかりません: {root}")
-    return runs[-1]
+    return max(runs, key=lambda p: (p / "data.npz").stat().st_mtime)

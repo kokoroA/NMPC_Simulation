@@ -187,6 +187,130 @@ def plot_trajectory3d(data, out_path: Path):
     return out_path
 
 
+# --- 自動機動の解析 -------------------------------------------------------
+MANEUVER_NAMES = {20: "自動水平旋回", 21: "自動 8 の字", 22: "自動上昇旋回"}
+
+
+def find_maneuvers(data):
+    """mode 列から自動機動の区間 [(mode, i0, i1), ...] を切り出す。"""
+    if "mode" not in data:
+        return []
+    m = np.round(data["mode"]).astype(int)
+    segs, cur, start = [], 0, 0
+    for i, v in enumerate(m):
+        if v != cur:
+            if cur in MANEUVER_NAMES:
+                segs.append((cur, start, i))
+            cur, start = v, i
+    if cur in MANEUVER_NAMES:
+        segs.append((cur, start, len(m)))
+    return segs
+
+
+def plot_maneuvers(data, meta, out_path):
+    """機動ごとに「指令 vs 実測」を並べる。M5 の要点が一目で分かる形にする。"""
+    segs = find_maneuvers(data)
+    if not segs:
+        return None
+    t = data["t"]
+    fig, axes = plt.subplots(3, len(segs), figsize=(6.0 * len(segs), 11), squeeze=False)
+
+    for c, (mode, i0, i1) in enumerate(segs):
+        sl = slice(i0, i1)
+        tt = t[sl] - t[i0]
+        name = MANEUVER_NAMES[mode]
+
+        # 1段目: ロール/ピッチ 指令 vs 実測
+        ax = axes[0][c]
+        ax.plot(tt, data["phi_ref"][sl] * DEG, "k:", lw=1.4, label="ロール 目標")
+        ax.plot(tt, data["phi_true"][sl] * DEG, lw=1.8, color="C0", label="ロール 実測")
+        ax.plot(tt, data["theta_ref"][sl] * DEG, ":", color="0.5", lw=1.4, label="ピッチ 目標")
+        ax.plot(tt, data["theta_true"][sl] * DEG, lw=1.8, color="C3", label="ピッチ 実測")
+        # 定常区間のバンク達成率を注記
+        rref = data["Rref"][sl]
+        hold = np.abs(rref) > 0.9 * np.max(np.abs(rref)) if np.max(np.abs(rref)) > 0 else None
+        if hold is not None and hold.any():
+            ref_h = np.mean(np.abs(data["phi_ref"][sl][hold])) * DEG
+            act_h = np.mean(np.abs(data["phi_true"][sl][hold])) * DEG
+            if ref_h > 1e-3:
+                ax.set_title(f"{name}\nバンク達成率 {100*act_h/ref_h:.0f} % "
+                             f"（指令 {ref_h:.1f}° → 実測 {act_h:.1f}°）", fontsize=11)
+        else:
+            ax.set_title(name, fontsize=11)
+        ax.set_ylabel("角度 [deg]")
+        ax.legend(fontsize=8, ncol=2)
+        ax.grid(alpha=0.3)
+
+        # 2段目: ヨー角速度と積算方位
+        ax = axes[1][c]
+        ax.plot(tt, data["Rref"][sl] * DEG, "k:", lw=1.4, label="ヨー角速度 目標")
+        ax.plot(tt, data["r_true"][sl] * DEG, lw=1.6, color="C2", label="ヨー角速度 実測")
+        ax.set_ylabel("ヨー角速度 [deg/s]")
+        ax.legend(loc="upper left", fontsize=8)
+        ax.grid(alpha=0.3)
+        ax2 = ax.twinx()
+        psi_rel = (data["psi_true"][sl] - data["psi_true"][i0]) * DEG
+        ax2.plot(tt, psi_rel, color="C1", lw=1.6, alpha=0.9, label="積算方位")
+        for lvl in (360, -360):
+            if np.nanmin(psi_rel) - 20 < lvl < np.nanmax(psi_rel) + 20:
+                ax2.axhline(lvl, color="C1", lw=0.8, ls="--", alpha=0.6)
+        ax2.set_ylabel("積算方位 [deg]")
+        ax2.legend(loc="lower right", fontsize=8)
+
+        # 3段目: duty と推力指令
+        ax = axes[2][c]
+        for m_ in MOTORS:
+            k = f"duty_{m_}"
+            if k in data:
+                ax.plot(tt, data[k][sl], lw=1.0, label=m_.upper())
+        ax.axhline(fc.MAX_DUTY, color="r", lw=0.7, ls="--")
+        ax.axhline(fc.MIN_DUTY, color="r", lw=0.7, ls=":")
+        ax.set_ylabel("duty")
+        ax.set_xlabel("機動開始からの時刻 [s]")
+        ax.legend(ncol=6, fontsize=7)
+        ax.grid(alpha=0.3)
+        ax3 = ax.twinx()
+        ax3.plot(tt, data["T_ref"][sl], color="C3", lw=1.4, alpha=0.8)
+        ax3.set_ylabel("T_ref", color="C3")
+
+    fig.suptitle("自動機動の指令と実測", fontsize=13)
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return out_path
+
+
+def maneuver_report(data):
+    """機動ごとの数値サマリ。"""
+    segs = find_maneuvers(data)
+    if not segs:
+        return "自動機動の区間が見つかりません"
+    t = data["t"]
+    out = []
+    for mode, i0, i1 in segs:
+        sl = slice(i0, i1)
+        name = MANEUVER_NAMES[mode]
+        dur = t[i1 - 1] - t[i0]
+        psi_rel = (data["psi_true"][sl] - data["psi_true"][i0]) * DEG
+        rref = data["Rref"][sl]
+        peak = np.max(np.abs(rref)) 
+        hold = np.abs(rref) > 0.9 * peak if peak > 0 else np.zeros(len(rref), bool)
+        ref_h = np.mean(np.abs(data["phi_ref"][sl][hold])) * DEG if hold.any() else float("nan")
+        act_h = np.mean(np.abs(data["phi_true"][sl][hold])) * DEG if hold.any() else float("nan")
+        th_h = np.mean(data["theta_true"][sl][hold]) * DEG if hold.any() else float("nan")
+        tr = data["T_ref"][sl]
+        boost = (np.max(tr) - tr[0]) / tr[0] * 100 if tr[0] > 1e-6 else 0.0
+        dmax = max(np.max(data[f"duty_{m_}"][sl]) for m_ in MOTORS if f"duty_{m_}" in data)
+        out.append(
+            f"■ {name}   所要 {dur:.1f} s\n"
+            f"    バンク    指令 {ref_h:5.1f}°  実測 {act_h:5.1f}°  達成率 {100*act_h/ref_h:3.0f} %\n"
+            f"    ピッチ    定常 {th_h:+5.1f}°\n"
+            f"    ヨー      最大 {np.max(psi_rel):+7.1f}°  最小 {np.min(psi_rel):+7.1f}°  正味 {psi_rel[-1]:+7.1f}°\n"
+            f"    推力補正  最大 +{boost:.1f} %\n"
+            f"    duty      最大 {dmax:.3f}（上限 {fc.MAX_DUTY}）")
+    return "\n".join(out)
+
+
 def summarize(data, meta):
     """数値サマリ。目で見る前にここで異常に気づけるようにする。"""
     t = data["t"]
@@ -223,6 +347,11 @@ def main() -> int:
     traj = plot_trajectory3d(data, run_dir / "trajectory.png")
     if traj:
         made.append(traj)
+    mv = plot_maneuvers(data, meta, run_dir / "maneuvers.png")
+    if mv:
+        made.append(mv)
+        print()
+        print(maneuver_report(data))
     print("\n生成:")
     for p in made:
         print(f"  {p}")
