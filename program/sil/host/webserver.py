@@ -47,6 +47,8 @@ class Simulation:
         self.arm_hold = 0          # lock_com ジェスチャの保持 tick 数
         self.request_arm = False
         self.request_reset = False
+        self.request_mode = None
+        self.trail_epoch = 0          # 軌跡クリアの世代番号
         self.status = "ウォームアップ中"
 
         self._snap: dict = {}
@@ -75,10 +77,16 @@ class Simulation:
                 self.request_arm = True
             if data.get("reset"):
                 self.request_reset = True
+            if data.get("clear_trail"):
+                self.trail_epoch += 1
             if "paused" in data:
                 self.paused = bool(data["paused"])
             if "speed" in data:
                 self.speed = max(0.1, min(4.0, float(data["speed"])))
+            if "mode" in data:
+                m = int(data["mode"])
+                if m in (0, 20, 21, 22):
+                    self.request_mode = m
 
     # --- チャンネル生成 ---------------------------------------------------
     def _channels(self) -> list[int]:
@@ -100,7 +108,11 @@ class Simulation:
             with self.lock:
                 if self.request_reset:
                     self.cl.plant.reset()
+                    self.trail_epoch += 1
                     self.request_reset = False
+                if self.request_mode is not None:
+                    self.cl.sil.set_flight_mode(self.request_mode)
+                    self.request_mode = None
                 if self.request_arm and self.cl.sil.arm_flag == 3:
                     self.arm_hold = 80          # lock_com は 50 回超の保持が要る
                     self.request_arm = False
@@ -145,13 +157,18 @@ class Simulation:
                 "phi": pl.phi, "theta": pl.theta, "psi": pl.psi,
                 "p": float(pl.rates[0]), "q": float(pl.rates[1]), "r": float(pl.rates[2]),
                 "alt": pl.altitude,
-                "pos": [float(pl.pos[0]), float(pl.pos[1])],
+                # 位置・速度（NED）。可視化専用で制御には戻していない。
+                "pos": [float(pl.pos[0]), float(pl.pos[1]), float(pl.pos[2])],
+                "vel": [float(pl.vel[0]), float(pl.vel[1]), float(pl.vel[2])],
+                "gs": pl.ground_speed,
+                "climb": pl.climb_rate,
                 # ファーム内部
                 "phi_est": st["phi"], "theta_est": st["theta"],
                 "phi_ref": st["phi_ref"], "theta_ref": st["theta_ref"],
                 "Rref": st["Rref"], "T_ref": st["T_ref"],
                 "duty": [round(d, 4) for d in duty],
                 "common_duty": st["T_ref"] * fc.T_REF_COE,
+                "trail_epoch": self.trail_epoch,
                 "input": dict(self.inp),
             }
 

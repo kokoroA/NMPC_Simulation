@@ -311,6 +311,49 @@ def maneuver_report(data):
     return "\n".join(out)
 
 
+def plot_ground_track(data, meta, out_path):
+    """真上から見た地上軌跡。8 の字の形はこれが一番見やすい。"""
+    if not {"pos_n", "pos_e"} <= set(data):
+        return None
+    n, e = data["pos_n"], data["pos_e"]
+    segs = find_maneuvers(data)
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6.6))
+
+    # 左: 全体
+    ax = axes[0]
+    ax.plot(e, n, lw=0.9, color="0.75", label="全区間")
+    colors = ["C0", "C1", "C2"]
+    for i, (mode, i0, i1) in enumerate(segs):
+        ax.plot(e[i0:i1], n[i0:i1], lw=2.0, color=colors[i % 3],
+                label=MANEUVER_NAMES.get(mode, str(mode)))
+    ax.scatter([e[0]], [n[0]], color="g", s=50, zorder=5, label="開始")
+    ax.scatter([e[-1]], [n[-1]], color="r", s=50, zorder=5, label="終了")
+    ax.set_xlabel("East [m]"); ax.set_ylabel("North [m]")
+    ax.set_title("地上軌跡（全体）")
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.legend(fontsize=9); ax.grid(alpha=0.3)
+
+    # 右: 機動ごとに原点を揃えて重ねる
+    ax = axes[1]
+    for i, (mode, i0, i1) in enumerate(segs):
+        ax.plot(e[i0:i1] - e[i0], n[i0:i1] - n[i0], lw=2.0, color=colors[i % 3],
+                label=MANEUVER_NAMES.get(mode, str(mode)))
+        ax.scatter([0], [0], color="g", s=30, zorder=5)
+    ax.set_xlabel("East [m]（機動開始点を原点に）"); ax.set_ylabel("North [m]")
+    ax.set_title("機動ごとの軌跡（開始点を揃えて重ね描き）")
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.legend(fontsize=9); ax.grid(alpha=0.3)
+
+    dk = meta.get("plant_params", {}).get("drag_k")
+    fig.suptitle(f"地上軌跡  —  二次抗力 drag_k={dk}（実機同定値ではない概算）"
+                 f"／位置は制御に未フィードバック", fontsize=11)
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return out_path
+
+
 def summarize(data, meta):
     """数値サマリ。目で見る前にここで異常に気づけるようにする。"""
     t = data["t"]
@@ -347,6 +390,9 @@ def main() -> int:
     traj = plot_trajectory3d(data, run_dir / "trajectory.png")
     if traj:
         made.append(traj)
+    gt = plot_ground_track(data, meta, run_dir / "ground_track.png")
+    if gt:
+        made.append(gt)
     mv = plot_maneuvers(data, meta, run_dir / "maneuvers.png")
     if mv:
         made.append(mv)

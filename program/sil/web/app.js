@@ -62,6 +62,7 @@ function updateInput() {
   if (keys.has('KeyS')) input.throttle -= RATE.throttle * dt;
   input.throttle += TAP.throttle; TAP.throttle = 0;
   input.throttle = Math.max(0, Math.min(1, input.throttle));
+  if (thrSlider) { thrSlider.value = input.throttle; thrVal.textContent = input.throttle.toFixed(3); }
 
   // 舵は離すとセンタリング
   const axis = (name, plus, minus) => {
@@ -123,7 +124,30 @@ function drawSticks() {
   set('stickR', input.roll, input.pitch);
 }
 
+// --- スロットルの数値指定 ------------------------------------------------
+// ホバー窓が非常に狭い（ホバー 0.129 / 18deg 傾斜時 0.135 / 上限飽和 0.428）ため、
+// キー操作だけでは水平飛行を保つのが難しい。数値で入れられるようにする。
+const thrSlider = document.getElementById('thrSlider');
+const thrVal = document.getElementById('thrVal');
+function setThrottle(v) {
+  input.throttle = Math.max(0, Math.min(1, v));
+  thrSlider.value = input.throttle;
+  thrVal.textContent = input.throttle.toFixed(3);
+  post();
+}
+thrSlider.oninput = () => setThrottle(+thrSlider.value);
+document.getElementById('btnHover').onclick = () => setThrottle(0.129);
+document.getElementById('btnHover2').onclick = () => setThrottle(0.136);
+
 document.getElementById('btnArm').onclick = () => post({ arm: true });
+document.getElementById('btnTrail').onclick = () => post({ clear_trail: true });
+document.querySelectorAll('button[data-mode]').forEach((b) => {
+  b.onclick = () => post({ mode: +b.dataset.mode });
+});
+const viewSpan = document.getElementById('viewSpan');
+viewSpan.onchange = () => { viz.metersPerView = +viewSpan.value; viz.zoom = 1.0; };
+viz.metersPerView = +viewSpan.value;
+document.getElementById('follow').onchange = (e) => { viz.follow = e.target.checked; };
 document.getElementById('btnReset').onclick = () => post({ reset: true });
 document.getElementById('btnPause').onclick = () => { paused = !paused; post({ paused }); };
 const speedEl = document.getElementById('speed');
@@ -166,6 +190,8 @@ function render(st) {
     ['目標 ロール / ピッチ', `${(st.phi_ref * D).toFixed(1)}° / ${(st.theta_ref * D).toFixed(1)}°`],
     ['角速度 p / q / r', `${(st.p * D).toFixed(0)} / ${(st.q * D).toFixed(0)} / ${(st.r * D).toFixed(0)} °/s`],
     ['高度 (開ループ)', `${st.alt.toFixed(2)} m`],
+    ['対地速度 / 上昇率', `${(st.gs || 0).toFixed(2)} / ${(st.climb || 0).toFixed(2)} m/s`],
+    ['位置 N / E', `${(st.pos ? st.pos[0] : 0).toFixed(1)} / ${(st.pos ? st.pos[1] : 0).toFixed(1)} m`],
     ['T_ref', st.T_ref.toFixed(3)],
     ['common_duty', st.common_duty.toFixed(3)],
     ['スロットル入力', `${(st.input.throttle * 100).toFixed(0)} %`],
