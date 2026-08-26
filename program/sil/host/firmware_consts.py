@@ -36,21 +36,22 @@ def base_duty_from_throttle(ratio, thrust_delta_ratio=0.0):
 
 
 def motors_running(ratio, thrust_delta_ratio=0.0):
-    """モータが回るか（T_ref/BATTERY >= Disable_duty）。"""
-    return t_ref_from_throttle(ratio, thrust_delta_ratio) / BATTERY_VOLTAGE >= DISABLE_DUTY
+    """モータが回るか（common_duty = T_ref * T_ref_coe >= Disable_duty）。"""
+    return base_duty_from_throttle(ratio, thrust_delta_ratio) >= DISABLE_DUTY
 
 
 def attitude_live(ratio, thrust_delta_ratio=0.0):
-    """姿勢ゼロ点の取り直しが止まるか（T_ref/BATTERY >= Flight_duty）。"""
-    return t_ref_from_throttle(ratio, thrust_delta_ratio) / BATTERY_VOLTAGE >= FLIGHT_DUTY
+    """姿勢ゼロ点の取り直しが止まるか（common_duty >= Flight_duty）。"""
+    return base_duty_from_throttle(ratio, thrust_delta_ratio) >= FLIGHT_DUTY
 
 
 # --- 使えるスロットル帯 ----------------------------------------------------
-# 2026-08-25 の control.cpp 修正で停止判定が単位整合した:
-#   旧: T_ref / BATTERY_VOLTAGE < Disable_duty   (電圧比と duty を比較していた)
-#   新: common_duty = T_ref * T_ref_coe;  common_duty < Disable_duty
-# これにより duty 下限が 0.444 -> 0.100 に下がり、ホバー点が到達可能になった。
+# 2026-08-25: 停止判定と姿勢ゼロ点の両方を common_duty 基準に統一。
+#   旧停止: T_ref / BATTERY_VOLTAGE < Disable_duty
+#   新: common_duty = T_ref * T_ref_coe;  common_duty < Disable_duty / Flight_duty
+# Flight_duty も PWM 0.1 に揃えたので、モータ始動と姿勢ロックは同時（スロットル比 0.045）。
 _DUTY_PER_RATIO = T_REF_THROTTLE_GAIN * BATTERY_VOLTAGE * T_REF_COE   # = 2.22
 THROTTLE_MOTORS_ON = DISABLE_DUTY / _DUTY_PER_RATIO                   # = 0.045
+THROTTLE_ATTITUDE_LIVE = FLIGHT_DUTY / _DUTY_PER_RATIO                # = 0.023
 THROTTLE_DUTY_SATURATES = MAX_DUTY / _DUTY_PER_RATIO                  # = 0.428
 DUTY_FLOOR = DISABLE_DUTY                                             # = 0.100

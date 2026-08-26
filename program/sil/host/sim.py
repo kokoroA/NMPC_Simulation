@@ -104,6 +104,21 @@ class ClosedLoop:
         if verbose:
             print(f"  アーム完了 t={self.t:.2f}s")
 
+    @property
+    def thrust_delta_ratio(self) -> float:
+        """上昇旋回の推力補正比を T_ref から逆算する。
+
+        control.cpp:995  T_ref = 0.5*BATTERY*ratio * (1 + g_thrust_delta_ratio)
+        g_thrust_delta_ratio は static で外部から読めないため、こう求める。
+        """
+        import firmware_consts as fc
+        lo, hi = rc.CH_MIN[rc.THROTTLE], rc.CH_MAX[rc.THROTTLE]
+        ratio = (self.ch[rc.THROTTLE] - lo) / float(hi - lo)
+        base = fc.T_REF_THROTTLE_GAIN * fc.BATTERY_VOLTAGE * ratio
+        if base <= 1e-9:
+            return 0.0
+        return self.sil.state()["T_ref"] / base - 1.0
+
     def disturb_rates(self, dp=0.0, dq=0.0, dr=0.0):
         """突風相当の角速度インパルスを与える。
 

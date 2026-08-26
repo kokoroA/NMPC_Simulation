@@ -98,15 +98,17 @@ def main() -> int:
     print(f"  arm={sil.arm_flag}  (2 = 飛行可能)")
     check(sil.arm_flag == 2, "ジェスチャで Arm_flag=2 へ遷移")
 
-    # ⚠ スロットルが Flight_duty(0.05) 未満の間、実機は毎周期
+    # ⚠ スロットルが Flight_duty(PWM 0.1) 未満の間、実機は毎周期
     #    Phi_bias = Phi として姿勢ゼロ点を取り直す（地上での姿勢トリム）。
-    #    姿勢を「生かす」にはスロットルを上げる必要がある。
+    #    モータ始動と同じ common_duty 基準。
     print("\n--- 3. スロットル上げ（姿勢ゼロ点取得を止める）---")
     sil.set_rc(rc.with_throttle(rc.neutral(), 0.30))
     run_level(sil, sm, 40)
     d = sil.debug()
-    thr_ok = d["T_ref"] / 7.4 >= 0.05
-    check(thr_ok, "T_ref が Flight_duty を超えた", f"T_ref={d['T_ref']:.3f} duty比={d['T_ref']/7.4:.3f}")
+    common_duty = d["T_ref"] * 0.6
+    thr_ok = common_duty >= 0.1
+    check(thr_ok, "common_duty が Flight_duty を超えた",
+          f"T_ref={d['T_ref']:.3f} common_duty={common_duty:.3f}")
 
     print("\n--- 4. 既知の傾きに EKF が追従するか ---")
     cur_phi, cur_theta = 0.0, 0.0

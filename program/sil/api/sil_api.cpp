@@ -135,6 +135,7 @@ extern "C" void sil_set_imu(const float acc[3], const float gyr[3], const float 
 extern "C" void sil_set_range_mm(uint16_t mm) { sil_sensor_set_range_mm(mm); }
 extern "C" void sil_set_rc(const uint16_t ch[18]) { std::memcpy(Chdata, ch, sizeof(uint16_t) * 18); }
 extern "C" void sil_set_arm_flag(uint8_t v) { Arm_flag = v; }
+extern "C" void sil_set_flight_mode(uint8_t mode) { Flight_mode = mode; }
 
 // =========================================================================
 // 実行

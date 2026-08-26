@@ -54,6 +54,7 @@ class Sil:
         L.sil_set_range_mm.argtypes = [ctypes.c_uint16]
         L.sil_set_rc.argtypes = [ctypes.c_uint16 * 18]
         L.sil_set_arm_flag.argtypes = [ctypes.c_uint8]
+        L.sil_set_flight_mode.argtypes = [ctypes.c_uint8]
         L.sil_get_duty.argtypes = [ctypes.c_float * 6]
         L.sil_get_state.argtypes = [ctypes.c_float * 24]
         L.sil_get_arm_flag.restype = ctypes.c_uint8
@@ -78,6 +79,17 @@ class Sil:
 
     def set_arm_flag(self, v: int) -> None:
         self._lib.sil_set_arm_flag(ctypes.c_uint8(v))
+
+    # control.hpp のモード定数
+    MODE_NORMAL = 0
+    MODE_AUTO_HORIZONTAL_TURN = 20
+    MODE_AUTO_FIGURE_EIGHT = 21
+    MODE_AUTO_CLIMBING_TURN = 22
+
+    def set_flight_mode(self, mode: int) -> None:
+        """自動機動モードを開始する（実行時書き込み）。"""
+        self._lib.sil_set_flight_mode(ctypes.c_uint8(mode))
+
 
     # --- 実行 -------------------------------------------------------------
     def tick(self) -> None:

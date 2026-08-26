@@ -21,6 +21,14 @@ void sil_set_range_mm(uint16_t mm);
 void sil_set_rc(const uint16_t ch[18]);
 void sil_set_arm_flag(uint8_t v);
 
+// 自動機動モードを実行時に設定する。
+// 実機は MOCK_AUTO_FLIGHT_MODE（コンパイル時）かプロポで入るが、
+// SIL では条件を変えて何度も試したいので直接書き込む。
+// control.hpp: AUTO_HORIZONTAL_TURN=20, AUTO_FIGURE_EIGHT=21, AUTO_CLIMBING_TURN=22
+void sil_set_flight_mode(uint8_t mode);
+// 注: g_thrust_delta_ratio は control.cpp 内の static なので直接読めない。
+//     ホスト側で T_ref から逆算する（sim.py の thrust_delta_ratio）。
+
 // --- 実行 -----------------------------------------------------------------
 // 400Hz を 1 tick 進める。内部で仮想時間 +2500us、loop_400Hz 呼出、
 // core1 が起動された場合はその完了待ちまで行う。

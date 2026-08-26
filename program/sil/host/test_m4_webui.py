@@ -100,7 +100,7 @@ def main() -> int:
         check(wait_until(lambda s: s["arm"] == 2, 15), "POST でアームできる",
               f"arm={state()['arm']}")
 
-        # スロットルを上げる。姿勢制御が生きるのは T_ref/BATTERY >= Flight_duty(0.05)
+        # スロットルを上げる。姿勢制御が生きるのは common_duty >= Flight_duty(0.1)
         post({"throttle": 0.30, "roll": 0.0, "pitch": 0.0})
         check(wait_until(lambda s: s["common_duty"] > 0.6, 10), "スロットル入力が反映される",
               f"common_duty={state()['common_duty']:.3f}")
