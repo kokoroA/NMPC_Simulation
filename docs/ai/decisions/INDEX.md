@@ -5,6 +5,7 @@
 
 | 日付 | ファイル | 要約 |
 |---|---|---|
+| 2026-08-26 | [20260826_roll_ti_sweep.md](20260826_roll_ti_sweep.md) | ロール PID の Ti=10000 は 100000 と同じで効果ゼロ。積分時間は maneuver の時間スケールまで下げる必要があり実用値は 2〜5 秒 |
 | 2026-08-26 | [20260826_sil_m5_auto_maneuvers.md](20260826_sil_m5_auto_maneuvers.md) | SIL M5 完了。自動旋回・8の字・上昇旋回は設計通り動作。ただしバンク角が指令の47%しか出ない（旋回カップリング＋ロール積分なし）。姿勢ゼロ点判定も common_duty 基準へ統一 |
 | 2026-08-25 | [20260825_flight_duty_common_duty.md](20260825_flight_duty_common_duty.md) | 姿勢ゼロ点取り直しを common_duty 基準に。Flight_duty=0.1 でモータ始動と同時にロック |
 | 2026-08-25 | [20260825_stop_gate_mixing_else.md](20260825_stop_gate_mixing_else.md) | 停止判定の else 側でのみミキシング。common_duty 条件は M4 のまま。SIL motors_running を追従 |

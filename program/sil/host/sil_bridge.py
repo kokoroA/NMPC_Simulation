@@ -55,6 +55,7 @@ class Sil:
         L.sil_set_rc.argtypes = [ctypes.c_uint16 * 18]
         L.sil_set_arm_flag.argtypes = [ctypes.c_uint8]
         L.sil_set_flight_mode.argtypes = [ctypes.c_uint8]
+        L.sil_set_pid.argtypes = [ctypes.c_int] + [ctypes.c_float] * 5
         L.sil_get_duty.argtypes = [ctypes.c_float * 6]
         L.sil_get_state.argtypes = [ctypes.c_float * 24]
         L.sil_get_arm_flag.restype = ctypes.c_uint8
@@ -89,6 +90,18 @@ class Sil:
     def set_flight_mode(self, mode: int) -> None:
         """自動機動モードを開始する（実行時書き込み）。"""
         self._lib.sil_set_flight_mode(ctypes.c_uint8(mode))
+
+    # sil_set_pid の which
+    PID_PHI, PID_THETA, PID_PSI, PID_P, PID_Q, PID_R = range(6)
+
+    def set_pid(self, which, kp, ti, td=0.0, eta=0.125, h=0.0):
+        """PID ゲインを実行時に差し替える（SIL 専用のチューニング検討用）。
+
+        実機は control_init() で固定。ここで変えても実機には反映されないので、
+        良い値が見つかったら control.cpp を手で直すこと。
+        """
+        self._lib.sil_set_pid(int(which), float(kp), float(ti),
+                              float(td), float(eta), float(h))
 
 
     # --- 実行 -------------------------------------------------------------

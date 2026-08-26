@@ -57,6 +57,8 @@ extern float Ax, Ay, Az, Mx, My, Mz;
 extern float MN, ME, MD;
 #include <Eigen/Dense>
 extern Eigen::Matrix<float, 7, 1> Xe;
+#include "pid.hpp"
+extern PID phi_pid, theta_pid, psi_pid, p_pid, q_pid, r_pid;
 
 // --- PWM スライス割り当て -------------------------------------------------
 // ⚠ pwm.cpp のスライス名は実際のモータ位置と一致していない。
@@ -136,6 +138,14 @@ extern "C" void sil_set_range_mm(uint16_t mm) { sil_sensor_set_range_mm(mm); }
 extern "C" void sil_set_rc(const uint16_t ch[18]) { std::memcpy(Chdata, ch, sizeof(uint16_t) * 18); }
 extern "C" void sil_set_arm_flag(uint8_t v) { Arm_flag = v; }
 extern "C" void sil_set_flight_mode(uint8_t mode) { Flight_mode = mode; }
+
+extern "C" void sil_set_pid(int which, float kp, float ti, float td, float eta, float h) {
+    PID *tbl[6] = { &phi_pid, &theta_pid, &psi_pid, &p_pid, &q_pid, &r_pid };
+    if (which < 0 || which > 5) return;
+    const float step = (h > 0.0f) ? h : ((which <= 2) ? 0.01f : 0.0025f);
+    tbl[which]->set_parameter(kp, ti, td, eta, step);
+    tbl[which]->reset();
+}
 
 // =========================================================================
 // 実行

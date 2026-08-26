@@ -26,6 +26,12 @@ void sil_set_arm_flag(uint8_t v);
 // SIL では条件を変えて何度も試したいので直接書き込む。
 // control.hpp: AUTO_HORIZONTAL_TURN=20, AUTO_FIGURE_EIGHT=21, AUTO_CLIMBING_TURN=22
 void sil_set_flight_mode(uint8_t mode);
+
+// PID ゲインを実行時に差し替える（チューニング検討用）。
+// 実機は control_init() で固定だが、SIL では同一プロセスで振りたい。
+// which: 0=phi 1=theta 2=psi 3=p 4=q 5=r
+// h は角度ループ 0.01s / レートループ 0.0025s。0 以下なら既定値を使う。
+void sil_set_pid(int which, float kp, float ti, float td, float eta, float h);
 // 注: g_thrust_delta_ratio は control.cpp 内の static なので直接読めない。
 //     ホスト側で T_ref から逆算する（sim.py の thrust_delta_ratio）。
 

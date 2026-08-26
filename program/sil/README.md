@@ -5,6 +5,27 @@
 
 計画書: [`docs/sil_simulator_plan.md`](../../docs/sil_simulator_plan.md)
 
+## 実機ファームを変更したときの反映手順
+
+SIL は `Benzen_new/` の **ソースを直接コンパイル**している（コピーは持たない）。
+したがって:
+
+| 変更内容 | 必要な作業 |
+|---|---|
+| `control.cpp` / `pid.cpp` / `ekf.cpp` / `auto_maneuvers.cpp` の中身を編集 | **`cmake --build build` だけ** |
+| **新しい .cpp を追加**した | `CMakeLists.txt` の `FW_SOURCES` に足す |
+| **新しい pico-sdk の API** を使い始めた | `shim/` に該当関数を足す（未定義シンボルでリンクエラーになる） |
+| `control.cpp` の**定数**（`Disable_duty` 等）を変えた | あわせて `host/firmware_consts.py` も直す（写しなので） |
+
+反映されたかは**ソース内容ハッシュ**で確認できる（ファームは git 管理外なので）:
+
+```bash
+../NMPC_simulation/.venv/bin/python -c "import sys;sys.path.insert(0,'host');from logger import _firmware_source_hash;from pathlib import Path;print(_firmware_source_hash(Path('../pico/pico-sdk2/pico-sdk/Benzen_new')))"
+```
+
+⚠ `control.cpp` は **CRLF**。編集はバイナリモードで行い、**編集後は必ず全差分を確認**すること
+（過去に中断された編集でミキサ 55 行が消えた）。
+
 ## ビルド
 
 ```bash
@@ -24,7 +45,8 @@ python3 -c "import sys; sys.path.insert(0,'host'); from sil_bridge import Sil; s
 ## デモ飛行とログ
 
 ```bash
-../NMPC_simulation/.venv/bin/python host/run_m3_demo.py --csv
+../NMPC_simulation/.venv/bin/python host/run_m3_demo.py --csv    # 手動操作のデモ
+../NMPC_simulation/.venv/bin/python host/run_m5_demo.py          # 自動機動 3 種
 ```
 
 `runs/run_YYYYMMDD_HHMMSS/` に保存される:
@@ -70,6 +92,24 @@ python3 -c "import sys; sys.path.insert(0,'host'); from sil_bridge import Sil; s
 マウス／タッチの仮想スティックも同じ入力に合流する。3D ビューはドラッグで回転、
 ホイールでズーム。`--speed` で実時間倍率を変えられる。
 
+## ゲインのチューニング検討
+
+実機の `control_init()` を書き換えずに、SIL 上だけで PID ゲインを振れる。
+
+```bash
+../NMPC_simulation/.venv/bin/python host/tune_roll_ti.py          # ロール Ti 掃引
+../NMPC_simulation/.venv/bin/python host/tune_roll_ti.py 5 3 2    # 値を指定
+```
+
+コードからは:
+
+```python
+cl.sil.set_pid(cl.sil.PID_PHI, kp=1.0, ti=5.0, td=0.0)
+```
+
+⚠ **SIL で変えても実機には反映されない。** 良い値が見つかったら
+`control.cpp:699-701` を手で直すこと。
+
 ## 検証スイート
 
 ```bash
@@ -77,6 +117,7 @@ python3 -c "import sys; sys.path.insert(0,'host'); from sil_bridge import Sil; s
 ../NMPC_simulation/.venv/bin/python host/test_m2_closed_loop.py   # 姿勢閉ループ
 ../NMPC_simulation/.venv/bin/python host/test_m3_logging.py       # ログと描画
 ../NMPC_simulation/.venv/bin/python host/test_m4_webui.py         # WebUI（別プロセスで起動）
+../NMPC_simulation/.venv/bin/python host/test_m5_auto_maneuvers.py # 自動機動（旋回・8の字・上昇旋回）
 ```
 
 ⚠ Python は `NMPC_simulation/.venv`（numpy・matplotlib 入り）を使う。
