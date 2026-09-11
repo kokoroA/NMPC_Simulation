@@ -34,6 +34,27 @@ grep -ril "検索語" docs/ai/decisions/
 
 typo・フォーマット・リネームなど再現価値のない作業は記録しない。
 
+### 何が記録されているかの目次
+
+- **一覧: [`docs/ai/decisions/INDEX.md`](decisions/INDEX.md)**
+  INDEX は目次でしかない。該当しそうな行を見つけたら**必ず本文を全部読む**こと。
+  一覧だけで「知っている」と判断しないこと。
+
+### 検証の仕組み（クローンしたら 1 回だけ設定する）
+
+```bash
+git config core.hooksPath .githooks
+```
+
+これで commit 前に [`scripts/check_memory.py`](../../scripts/check_memory.py) が走り、
+**INDEX への追記漏れ・decision の必須項目欠け・リンク切れ**を機械的に弾く。
+コードを触ったのに記録が無い場合は**警告だけ**出す（記録不要な変更もあるため、判断は人に残す）。
+同じ検査は CI（`.github/workflows/memory-check.yml`）でも走るので、`--no-verify` では抜けられない。
+
+> ⚠ **「AI が過去記録を読んだか」は原理的に検証できない。** 検証できるのは
+> 「書いたか」「整合しているか」だけである。読ませる仕組み（`@` import / `alwaysApply` /
+> フック）と、書けたかを確かめる仕組み（hook / CI）は別物として両方用意してある。
+
 > ⚠ `Benzen_NMPC` はサブモジュール配下だが、**decision は必ず親リポジトリのここに書く**
 > （記憶を 1 か所に集約しないと grep で引けなくなるため）。
 

@@ -7,6 +7,10 @@ alwaysApply: true
 
 - 常時参照ルール（アーキテクチャ方針・制約・到達点）: @docs/ai/repository_rules.md
 - 手順の全文: @skills.md
+- **過去記録の一覧（何があるかはここで分かる）: @docs/ai/decisions/INDEX.md**
+
+INDEX は「どの記録が存在するか」の目次でしかない。**該当しそうな行を見つけたら、
+必ず `docs/ai/decisions/<ファイル名>` の全文を読むこと。**要約だけで判断しない。
 
 ## 着手前（必須・最低 1 回）
 

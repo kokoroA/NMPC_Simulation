@@ -2,8 +2,13 @@
 """SessionStart hook: 外部記憶（docs/ai/）の存在と開始時ルーチンをコンテキストへ注入する。
 
 このスクリプトは自分の位置（.claude/hooks/）からリポジトリルートを解決するため、
-セッションの cwd に依存しない。出力は Claude Code の hook JSON 形式。
+セッションの cwd に依存しない。既定の出力は Claude Code の hook JSON 形式。
 失敗しても常に exit 0 で無害な JSON を返し、セッション起動を妨げない。
+
+`--plain` を付けると JSON ではなく本文だけを出力する。
+Cursor Hooks など他ツールのフックや、シェルから直接読むときに使う。
+**文言を 1 か所に保つため**であり、コピーを増やさないこと
+（skills.md §6: 二重管理は片方が古くなる事故を必ず起こす）。
 """
 import json
 import sys
@@ -30,7 +35,7 @@ HEADER = """【外部記憶システム（3層）が有効です】
 """
 
 
-def main() -> None:
+def build_body() -> str:
     try:
         files = sorted(
             (p.name for p in DECISIONS.glob("*.md") if p.name != "INDEX.md"),
@@ -41,9 +46,16 @@ def main() -> None:
 
     if files:
         listing = "\n".join(f"  - {name}" for name in files[:10])
-        body = f"{HEADER}\n■ 直近の decisions（全 {len(files)} 件）\n{listing}\n"
-    else:
-        body = f"{HEADER}\n■ decisions はまだ 0 件です（前例なしとして扱ってよい）\n"
+        return f"{HEADER}\n■ 直近の decisions（全 {len(files)} 件）\n{listing}\n"
+    return f"{HEADER}\n■ decisions はまだ 0 件です（前例なしとして扱ってよい）\n"
+
+
+def main() -> None:
+    body = build_body()
+
+    if "--plain" in sys.argv:
+        sys.stdout.write(body)
+        return
 
     json.dump(
         {

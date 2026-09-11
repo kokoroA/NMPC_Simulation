@@ -1,0 +1,29 @@
+#!/bin/sh
+# 外部記憶（docs/ai/）の整合性チェック。
+# 有効化: git config core.hooksPath .githooks   （クローンごとに 1 回）
+#
+# どの AI ツールを使っても、人が手で書いても、**全員 git を通る**。
+# 「読ませる」指示は強制できないが、ここは共通の関門になる。
+#
+# 抜けたいときは git commit --no-verify（ただし同じ検査が CI でも走る）。
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "[memory] python3 が無いのでチェックを飛ばします"
+    exit 0
+fi
+
+ROOT=$(git rev-parse --show-toplevel)
+CHECK="$ROOT/scripts/check_memory.py"
+[ -f "$CHECK" ] || exit 0
+
+echo "[memory] 外部記憶の整合性をチェックします"
+python3 "$CHECK" --staged --strict
+STATUS=$?
+
+if [ $STATUS -ne 0 ]; then
+    echo ""
+    echo "[memory] ✗ commit を中止しました。上の項目を直してください。"
+    echo "         どうしても今すぐ通したいときは: git commit --no-verify"
+    echo "         （CI でも同じ検査が走るので、いずれ直す必要があります）"
+fi
+exit $STATUS

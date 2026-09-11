@@ -1,0 +1,45 @@
+name: memory-check
+
+# 外部記憶（docs/ai/）の整合性を PR / push で検証する。
+# pre-commit フックは --no-verify で抜けられるので、**回避できない最後の砦**として置く。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 差分を取るため履歴が要る
+
+      - name: 比較対象を決める
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "range=origin/${{ github.base_ref }}..HEAD" >> "$GITHUB_OUTPUT"
+          else
+            echo "range=${{ github.event.before }}..HEAD" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 外部記憶の整合性チェック
+        run: |
+          python3 scripts/check_memory.py --range "${{ steps.range.outputs.range }}" --strict
+
+      - name: 入口ファイル（symlink）が生きているか
+        # skills.md §6: .clinerules / .cursorrules 等は repository_rules.md への symlink。
+        # 実体コピーに置き換わると片方だけ古くなる事故が起きるので、ここで検出する。
+        run: |
+          fail=0
+          for f in AGENTS.md .clinerules .cursorrules .github/copilot-instructions.md; do
+            if [ ! -L "$f" ]; then
+              echo "✗ $f が symlink ではありません（実体コピーは二重管理事故のもと）"; fail=1
+            elif [ ! -e "$f" ]; then
+              echo "✗ $f のリンクが切れています -> $(readlink "$f")"; fail=1
+            else
+              echo "✓ $f -> $(readlink "$f")"
+            fi
+          done
+          exit $fail

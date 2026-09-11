@@ -34,7 +34,7 @@ F1404 + GEMFAN-3630-3、`T_ref_coe` を 0.6 → 0.85 に上げた構成での飛
 **確認済み事実。モータ固着の正体は NaN。**
 
 `t=41.68 s` から duty が NaN になり、以降 26 点すべて NaN。
-[`control.cpp:1579`](../../program/pico/pico-sdk2/pico-sdk/Benzen_NMPC/control.cpp) の NaN ガードは
+[`control.cpp:1579`](../../../program/pico/pico-sdk2/pico-sdk/Benzen_NMPC/control.cpp) の NaN ガードは
 `*duties[i] = minimum_duty`（= `Disable_duty` = **0.1**）に置き換える。
 **その結果、全 6 発が duty 0.1 に固定され、スロットルに関係なく一定回転になる。**
 
