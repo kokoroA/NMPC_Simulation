@@ -19,3 +19,10 @@ program/sil/build/
 
 # SIL の実行ログ（生成物）
 program/sil/runs/
+
+# pico-sdk2 配下は Benzen_NMPC（実機ファーム本体）だけを追跡する。
+# SDK 本体は上流（raspberrypi/pico-sdk）のものなのでコミットしない。
+program/pico/pico-sdk2/*
+!program/pico/pico-sdk2/pico-sdk/
+program/pico/pico-sdk2/pico-sdk/*
+!program/pico/pico-sdk2/pico-sdk/Benzen_NMPC/

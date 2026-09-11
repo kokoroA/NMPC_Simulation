@@ -1,0 +1,5 @@
+#nmpc_bench CSV (10Hz) iter_us_limit=10000 (100Hz)
+#reset_cause: 0=none 1=init 2=external 3=period 4=sr2_bad_c 5=sr2_unhealthy
+#path: 0=tr1/sr2 1=reset@start 2=reset@after_sr2
+#cols: seq,arm,nmpc,phi,theta,p,q,r,phi_ref,theta_ref,psi_ref,T_ref,u_base,schedule_alpha,Q_phi_eff,iter_us,loop_us,cost,reset,iter_max,reset_cause,path,tr1,cycles,cnt_tr1,cnt_tr1_ok,cnt_tr1_skip,cnt_rst_period,cnt_rst_ext,cnt_sr2_c,cnt_sr2_llt,cnt_rst_after_sr2,u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,d_fr,d_fl,d_mr,d_ml,d_rr,d_rl,ftc,failsafe
+seq,arm,nmpc,phi,theta,p,q,r,phi_ref,theta_ref,psi_ref,T_ref,u_base,schedule_alpha,Q_phi_eff,iter_us,loop_us,cost,reset,iter_max,reset_cause,path,tr1,cycles,cnt_tr1,cnt_tr1_ok,cnt_tr1_skip,cnt_rst_period,cnt_rst_ext,cnt_sr2_c,cnt_sr2_llt,cnt_rst_after_sr2,u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,d_fr,d_fl,d_mr,d_ml,d_rr,d_rl,ftc,failsafe

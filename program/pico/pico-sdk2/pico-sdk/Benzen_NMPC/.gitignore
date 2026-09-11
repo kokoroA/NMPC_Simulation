@@ -1,0 +1,9 @@
+# ビルド成果物（repository_rules.md §4-6: 大容量バイナリはコミットしない）
+build/
+build_fresh/
+build_verify/
+
+# Excel の一時ロックファイル
+~$*
+
+.DS_Store
