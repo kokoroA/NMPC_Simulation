@@ -38,7 +38,7 @@ namespace physical {
     constexpr float Cr = 0.005f;
 
     // 機体形状 (モータ頂点座標は nmpc_model.cpp の kXm/kYm)
-    constexpr float mass       = 0.335f;   // [kg]
+    constexpr float mass       = 0.2853f;   // [kg] 0.312,0.2535(プロペラガード取った)
     constexpr float gravity    = 9.81f;    // [m/s^2]
 
     // プロペラ係数（推力/反トルク）

@@ -159,13 +159,34 @@ float   Motor_eta[NUM_MOTOR] = {1.f,1.f,1.f,1.f,1.f,1.f};  // 0=故障, 1=健全
 // シーケンスはスロットルを Flight_duty 以上に上げた時刻から始まり、
 // 下げると頭出しに戻る。スロットルがデッドマンスイッチを兼ねる。
 // 手順の全文: docs/20260905_yaw_damping_experiment_protocol.md
+//
+// ---- u0 を下げてよい理由（2026-09-14）----
+// 人が糸で吊る以上、機体は必ず数度傾く（0914_yaw_V1 では 7.5°）。合計推力 6*T(u0) の
+// 横成分がその傾きに比例して効くので、u0 が大きいほどロール・ピッチが崩れる。
+// u0 を下げるコストはほぼ無い:
+//   * 逆さ吊りなので推力 0 でも自重 3.29 N が糸を張る。糸が緩む心配は無い
+//   * tau_z ≈ 6*C_QT*T'(u0)*delta で、T'(u) = -0.453u + 1.0525 は u0 が小さいほど**大きい**。
+//     u0: 0.60 -> 0.35 で合計推力 -35%、ヨートルクは逆に +15%
+//   * delta はロール/ピッチ/推力に厳密に中立（sum kS = sum kS*kXm = sum kS*kYm = 0）。
+//     **傾きが気になるからと delta を下げても無意味。効くのは u0 だけ。**
+// 唯一のコストは「どの回転数での Cr か」が変わること。健全ホバーは duty 0.54、
+// 1 発停止の relaxed hover は 0.68 なので、u0 を下げるほど外挿になる。
+// → 要領書フェーズ⑤のとおり u0 を数水準振り、傾向を見て外挿する。
+// ⚠ 推力曲線 T(u) = -0.2265u^2 + 1.0525u + 0.0452 の較正範囲は **duty 0.25-1.00**。
+//   u0 < 0.25 は外挿で、T'(u0) が信用できない → tau_z が決まらない。**0.25 を下限とする。**
+// 根拠: docs/ai/decisions/20260914_bench_lower_u0_and_soft_ramp.md
 uint8_t Bench_mode   = BENCH_OFF;
-float   Bench_u0     = 0.60f;   // common duty。6 発同じ値なので合計推力はここで決まる
-float   Bench_delta  = 0.05f;   // 差動量。tau_z ≈ 6*C_QT*T'(u0)*delta
+float   Bench_u0     = 0.35f;   // common duty。合計 2.31 N (236 g)。★下限 0.25★
+float   Bench_delta  = 0.05f;   // 差動量。tau_z ≈ 6*C_QT*T'(u0)*delta。姿勢には影響しない
 float   Bench_sign   = 1.0f;    // 差動の向き。正逆両方を取ると tau_bias が分離できる
-float   Bench_t_spin  = 3.0f;   // (1)   u0 のみ。静止確認とロータ立ち上げ [s]
+float   Bench_u_start = 0.20f;  // ランプ開始 duty。0 から立ち上げると ESC が起動し損ねて
+                                // 片発だけ回らず、かえって姿勢が崩れる。起動が確実な値にする
+float   Bench_t_ramp  = 1.5f;   // (1a) u_start -> u0 の直線ランプ [s]。0 で従来どおりステップ
+float   Bench_t_spin  = 3.0f;   // (1b) u0 を保持。静止確認 [s]
 float   Bench_t_step  = 6.0f;   // (2)(3) 差動投入。r を 150-200 deg/s まで育てる [s]
-float   Bench_t_decay = 20.0f;  // (4)   差動を 0 に戻して自由減衰 [s]
+float   Bench_t_decay = 10.0f;  // (4)   差動を 0 に戻して自由減衰 [s]
+float   Bench_r_max   = 250.0f; // |r| がこれを超えたらフェーズ(2)を打ち切る [deg/s]。0 で無効。
+                                // 加振モードでは FS_RATE を外してあるので唯一の歯止め
 uint8_t Bench_phase  = 0;
 static uint32_t Bench_t0_us = 0;
 
@@ -1296,10 +1317,13 @@ static bool attitude_state_sane(void)
 
 // ---- ベンチ加振シーケンス ----
 // 経過時間で 4 フェーズを進め、6 発の duty を直接書く。NMPC は通さない。
-//   (1) t < t_spin                     : 全発 u0        (静止確認・ロータ立ち上げ)
-//   (2)(3) < t_spin+t_step             : u0 + kS*delta  (純ヨートルク。合計推力は不変)
-//   (4) < t_spin+t_step+t_decay        : 全発 u0        (tau_z = 0。自由減衰)
+//   (1a) t < t_ramp                    : u_start -> u0 の直線ランプ (振り子を蹴らない)
+//   (1b) < t_ramp+t_spin               : 全発 u0        (静止確認)
+//   (2)(3) < +t_step                   : u0 + kS*delta  (純ヨートルク。合計推力は不変)
+//   (4)    < +t_decay                  : 全発 u0        (tau_z = 0。自由減衰)
 //   以降                                : 全発 0         (終了)
+// (1a) は 2026-09-14 追加。u0 をステップで入れると 6*T(u0) がそのまま振り子への
+// 撃力になり、傾いて吊られた機体のロール・ピッチが崩れる。
 static void bench_excite_update(void)
 {
   // ヨー反トルクの符号。★nmpc_model.cpp の kS と必ず一致させること★
@@ -1316,14 +1340,41 @@ static void bench_excite_update(void)
   }
 
   const float t  = (float)(time_us_32() - Bench_t0_us) * 1.0e-6f;
-  const float t1 = Bench_t_spin;
+  const float t0 = (Bench_t_ramp > 0.0f) ? Bench_t_ramp : 0.0f;
+  const float t1 = t0 + Bench_t_spin;
   const float t2 = t1 + Bench_t_step;
-  const float t3 = t2 + Bench_t_decay;
 
+  // フェーズ(2) の打ち切り。加振モードでは FS_RATE を外してあるため、回転速度の
+  // 歯止めはここだけ (docs/ai/decisions/20260914_bench_disable_fs_rate.md)。
+  // u0 を下げるとロータ由来の減衰が減り、同じ delta でも r がより速く育つ。
+  // ★打ち切ったら「その時刻でフェーズ(2) が終わった」ことにする★
+  //   delta だけ 0 にしてフェーズ表示を 2 のままにすると、物理的には自由減衰なのに
+  //   ログ上は加振中に見え、解析側の窓の切り方を誤らせる。自由減衰は t_decay 丸ごと取る。
+  // 一度切ったら r が減っても再投入しない (tau_z = 0 の前提が壊れるため)。
+  // 加振前に戻ったら解除する (スロットル頭出しでも t が 0 に戻る)。
+  static uint8_t rmax_hit = 0;
+  static float   rmax_t   = 0.0f;
+  if (t < t1) { rmax_hit = 0; rmax_t = 0.0f; }
+  else if (!rmax_hit && t < t2 && Bench_r_max > 0.0f &&
+           fabsf(Wr - Rbias) > Bench_r_max * (float)M_PI / 180.0f)
+  {
+    rmax_hit = 1;
+    rmax_t   = t;
+  }
+  const float t2e = rmax_hit ? rmax_t : t2;      // 実際の (2) 終了時刻
+  const float t3e = t2e + Bench_t_decay;
+
+  float u_com = Bench_u0;
   float delta;
-  if (t < t1)       { Bench_phase = 1; delta = 0.0f; }
-  else if (t < t2)  { Bench_phase = 2; delta = Bench_delta * Bench_sign; }
-  else if (t < t3)  { Bench_phase = 3; delta = 0.0f; }
+  if (t < t0)
+  {
+    Bench_phase = 1;
+    u_com = Bench_u_start + (Bench_u0 - Bench_u_start) * (t / t0);
+    delta = 0.0f;
+  }
+  else if (t < t1)  { Bench_phase = 1; delta = 0.0f; }
+  else if (t < t2e) { Bench_phase = 2; delta = Bench_delta * Bench_sign; }
+  else if (t < t3e) { Bench_phase = 3; delta = 0.0f; }
   else
   {
     Bench_phase = 4;
@@ -1333,7 +1384,7 @@ static void bench_excite_update(void)
 
   for (int j = 0; j < NUM_MOTOR; ++j)
   {
-    float u = Bench_u0 + kS_bench[j] * delta;
+    float u = u_com + kS_bench[j] * delta;
     if (u < 0.0f) u = 0.0f;
     if (u > nmpc::mpc::U_duty_max) u = nmpc::mpc::U_duty_max;
     *d6[j] = u;
@@ -1381,16 +1432,20 @@ static void failsafe_check(void)
   {
     const float phi_e   = Phi - Phi_bias;
     const float theta_e = Theta - Theta_bias;
-    // ベンチ加振では機体を上下逆さに吊るため |phi| が 180° 付近になり、
-    // 姿勢の脱出条件が常時成立してしまう。機体は治具で拘束されていて飛び去らないので
-    // 姿勢判定だけ外す。角速度・過大G・受信途絶はそのまま生かす。
-    if (Bench_mode == BENCH_OFF &&
-        (fabsf(phi_e) > FS_ATTITUDE_LIMIT || fabsf(theta_e) > FS_ATTITUDE_LIMIT))
-      cause = FS_ATTITUDE;
-    else if (fabsf(Wp - Pbias) > FS_RATE_LIMIT ||
-             fabsf(Wq - Qbias) > FS_RATE_LIMIT ||
-             fabsf(Wr - Rbias) > FS_RATE_LIMIT)
-      cause = FS_RATE;
+    // ベンチ加振（ヨー吊り）では |phi|≈180° になり、かつ r が実験量そのもの
+    // （手回し・加振とも 360 deg/s を超える）。治具拘束中は飛び去らないので
+    // 姿勢・角速度の両方を外す。過大G・受信途絶はそのまま生かす。
+    // 通常飛行 (BENCH_OFF) だけ評価する。0914_yaw_V1 で FS_RATE がラッチして
+    // スロットルが死んだ（20260914_bench_yaw_excite_blocked_by_fs_rate.md）。
+    if (Bench_mode == BENCH_OFF)
+    {
+      if (fabsf(phi_e) > FS_ATTITUDE_LIMIT || fabsf(theta_e) > FS_ATTITUDE_LIMIT)
+        cause = FS_ATTITUDE;
+      else if (fabsf(Wp - Pbias) > FS_RATE_LIMIT ||
+               fabsf(Wq - Qbias) > FS_RATE_LIMIT ||
+               fabsf(Wr - Rbias) > FS_RATE_LIMIT)
+        cause = FS_RATE;
+    }
   }
 
   // (5) 過大 G (sensor_read が立てる)
@@ -1909,14 +1964,28 @@ void rate_control(void)
   // 格納済。ここでは clamp + フェイルセーフ + safety(Disable/OverG) を適用して
   // 400Hz で ZOH 出力する(既存セーフティ構造を維持)。
   {
-    float minimum_duty = Disable_duty;
+    const float minimum_duty = Disable_duty;
     const float maximum_duty = nmpc::mpc::U_duty_max;
     float *duties[6] = {&FR_duty, &FL_duty, &MR_duty, &ML_duty, &RR_duty, &RL_duty};
+    // 対角の相手。[FR,FL,MR,ML,RR,RL] → FR↔RL, FL↔RR, MR↔ML
+    static const uint8_t kDiagClamp[6] = {5, 4, 3, 2, 1, 0};
     for (int i = 0; i < 6; ++i)
     {
+      // ---- 2026-09-15: 下限を「モータごと」に決める ----
+      // 故障発の**対角**は健全だが、U_ref は 0 を指している（1 発停止時に 3 軸のモーメントが
+      // 釣り合う点が f_diag = 0 だから。20260915_uref_must_point_at_the_balanced_allocation.md）。
+      // ここで一律に minimum_duty = 0.1 へ持ち上げると、solver は「0」で解いているのに
+      // 実機は 0.1 を出すことになり、**モデル外のヨートルクが乗る**:
+      //   0.1 × C_QT·T_max/Iz = +46 deg/s²（推力曲線のオフセットまで入れると +84 deg/s²）
+      // Q_r = 40 は弱いのでこれが定常ヨー率として残る。0915_100Hz_v1 のヨー発散
+      //（+221 deg/s）への寄与のひとつ。そこで対角発の下限だけ 0 にする。
+      // ⚠ 代償: ESC が完全停止するので、solver が後から対角を使いたくなっても
+      //    即座には立ち上がらない。「対角を持ち上げてヨーを立て直す」経路は細くなる。
+      const bool diag_of_dead = (Motor_eta[kDiagClamp[i]] <= 0.5f);
+      const float floor_i = diag_of_dead ? 0.0f : minimum_duty;
       // NaN フェイルセーフ (自己比較が false なら NaN)
       if (*duties[i] != *duties[i])
-        *duties[i] = minimum_duty;
+        *duties[i] = floor_i;
       // 故障指定のモータは下限を適用せず 0 にする (二重ガード)。
       // これを入れないと minimum_duty=0.1 で回り続ける。
       if (Motor_eta[i] <= 0.5f)
@@ -1932,8 +2001,8 @@ void rate_control(void)
         if (*duties[i] > maximum_duty) *duties[i] = maximum_duty;
         continue;
       }
-      if (*duties[i] < minimum_duty)
-        *duties[i] = minimum_duty;
+      if (*duties[i] < floor_i)
+        *duties[i] = floor_i;
       if (*duties[i] > maximum_duty)  // +Inf もここで丸まる
         *duties[i] = maximum_duty;
     }
@@ -2300,19 +2369,46 @@ void angle_control(void)
       static nmpc::XStackVec X_ref_stack;
       static nmpc::UStackVec U_ref_stack;
       // U_ref シフト (repository_rules §3)。健全時は全 0。
-      // 故障時は「止まる分を残りで肩代わりする」動作点を参照にすることで、
-      // R_u が肩代わりを罰し続けるのを防ぐ。
+      // 故障時は「その動作点では原点がどこか」を教える項であり、**釣り合う点**を指さねばならない。
+      //
+      // ---- 2026-09-15: 参照点を「残り全部で均等に肩代わり」から「対角も落とす」へ変更 ----
+      // 旧実装は健全発すべてに +u_hover*n_lost/n_healthy を配っていたが、
+      // **その点はモーメントが釣り合っていない**（u_hover=0.496 で pitch -0.051 / roll -0.030 / yaw +0.596）。
+      // 結果、姿勢誤差がまだ無い地上では R_u が勝って対角 RL が 0.333 で回り続け、
+      // 離陸してから 2.5-3 秒かけてようやく RL が 0 へ落ちる（その間に yaw が 180 deg/s 振れる）。
+      //
+      // 混合行列から解くと、1 発停止時にモーメントが厳密に 0 になる点は一意で
+      //   「**故障発とその対角の両方を 0**、残り 4 発を均等」
+      // である（ピッチ式・ロール式を代入するとヨー式から 3*f_diag = 0 が出る）。
+      // 3 通りの対角ペアすべてで Σk_Xm = Σk_Ym = Σk_S = 0 になることを確認済み。
+      //
+      // ⚠ 変えたのは**参照だけ**で box は触っていない。対角発は健全なままなので、
+      //    姿勢を保つのに必要なら solver はいつでも持ち上げられる。
+      // ⚠ duty の合計は保存するが推力は非線形なので、同じスロットルでは約 12% 揚力が減る。
+      //    故障後はスロットルを足す必要がある。
+      // 根拠: docs/ai/decisions/20260915_uref_must_point_at_the_balanced_allocation.md
       float u_ref_shift[nmpc::mpc::NU] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
       {
-        int n_healthy = 0;
+        // 対角の相手。[FR,FL,MR,ML,RR,RL] → FR↔RL, FL↔RR, MR↔ML
+        static const uint8_t kDiag[nmpc::mpc::NU] = {5, 4, 3, 2, 1, 0};
+
+        // 荷重を担う発 = 健全 かつ「故障発の対角」でない
+        bool carry[nmpc::mpc::NU];
+        int n_carry = 0;
         for (int j = 0; j < nmpc::mpc::NU; ++j)
-          if (Motor_eta[j] > 0.5f) n_healthy++;
-        if (n_healthy > 0 && n_healthy < nmpc::mpc::NU)
         {
-          const int n_lost = nmpc::mpc::NU - n_healthy;
-          const float up = u_hover * (float)n_lost / (float)n_healthy;
+          const bool dead = (Motor_eta[j] <= 0.5f);
+          const bool diag_of_dead = (Motor_eta[kDiag[j]] <= 0.5f);
+          carry[j] = (!dead && !diag_of_dead);
+          if (carry[j]) n_carry++;
+        }
+
+        if (n_carry > 0 && n_carry < nmpc::mpc::NU)
+        {
+          // 合計 duty を保つ: n_carry 発で NU 発分を担う
+          const float up = u_hover * (float)(nmpc::mpc::NU - n_carry) / (float)n_carry;
           for (int j = 0; j < nmpc::mpc::NU; ++j)
-            u_ref_shift[j] = (Motor_eta[j] > 0.5f) ? up : -u_hover;
+            u_ref_shift[j] = carry[j] ? up : -u_hover;
         }
       }
 
@@ -2568,10 +2664,10 @@ void log_output(void)
            nmpc::mpc::NX, nmpc::mpc::NU,
            nmpc::mpc::U_duty_max, nmpc::mpc::damping_eps);
     if (Bench_mode != BENCH_OFF)
-      printf("#bench: mode=%u u0=%.3f delta=%.3f sign=%+.0f "
-             "t_spin=%.1f t_step=%.1f t_decay=%.1f\r\n",
-             (unsigned)Bench_mode, Bench_u0, Bench_delta, Bench_sign,
-             Bench_t_spin, Bench_t_step, Bench_t_decay);
+      printf("#bench: mode=%u u0=%.3f delta=%.3f sign=%+.0f u_start=%.3f "
+             "t_ramp=%.1f t_spin=%.1f t_step=%.1f t_decay=%.1f r_max=%.0f\r\n",
+             (unsigned)Bench_mode, Bench_u0, Bench_delta, Bench_sign, Bench_u_start,
+             Bench_t_ramp, Bench_t_spin, Bench_t_step, Bench_t_decay, Bench_r_max);
     {
       const nmpc::NmpcCostParams cp = nmpc::nmpc_cost_get_active();
       printf("#solver: lambda_reset=%lu nonfinite=%lu ulin_reset=%lu ekf_reset=%lu ekf_bias_reset=%lu admm_rho=%.0f admm_iter=%d\r\n",

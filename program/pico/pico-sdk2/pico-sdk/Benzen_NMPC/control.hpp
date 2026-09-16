@@ -91,10 +91,13 @@ extern uint8_t Bench_mode;
 extern float   Bench_u0;       // common duty
 extern float   Bench_delta;    // 差動量
 extern float   Bench_sign;     // 差動の向き (+1 / -1)
-extern float   Bench_t_spin;   // (1)   u0 のみ [s]
+extern float   Bench_u_start;  // ランプ開始 duty
+extern float   Bench_t_ramp;   // (1a) u_start -> u0 のランプ [s]
+extern float   Bench_t_spin;   // (1b) u0 保持 [s]
 extern float   Bench_t_step;   // (2)(3) 差動投入 [s]
 extern float   Bench_t_decay;  // (4)   自由減衰 [s]
-extern uint8_t Bench_phase;    // 0=待機 1=spin 2=step 3=decay 4=終了
+extern float   Bench_r_max;    // |r| の上限 [deg/s]。超えたら (2) を打ち切る。0=無効
+extern uint8_t Bench_phase;    // 0=待機 1=ramp/spin 2=step 3=decay 4=終了
 
 extern uint8_t LockMode;
 extern volatile uint8_t Logoutputflag;

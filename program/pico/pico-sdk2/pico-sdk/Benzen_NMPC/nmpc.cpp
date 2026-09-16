@@ -413,17 +413,31 @@ inline void delta_u_bounds_fill(NmpcContext &ctx, float u_hover)
     }
 }
 
-int admm_solve(NmpcContext &ctx, float u_hover)
+// warm start を捨てたときの再起動点。
+// ---- 2026-09-15: 原点ではなく **U_ref** へ戻す ----
+// 旧実装は全部 0 に落としていた。健全時は U_ref = 0 なので原点でよいが、耐故障時の
+// Δu = 0 は「健全 5 発すべて u_hover」＝ **故障を忘れた配分**であり、ヨートルクが
+// Σk_S·u = +u_hover（= +194 deg/s²）残る。0915_100Hz_v1 では 39 ms のフル再構築中に
+// これが ZOH で保持され、飛行時間の 50% を占めてヨーが +221 deg/s まで発散した。
+// U_ref は 3 軸のモーメントが厳密に釣り合う配分なので、フォールバック先として正しい。
+// ⚠ 健全時は U_ref = 0 かつ du_min < 0 < du_max なので **旧実装とビット一致**する。
+inline void warm_start_reset_to_ref(NmpcContext &ctx, const UStackVec &U_ref)
 {
+    ctx.ws.z = U_ref.cwiseMin(ctx.scratch.du_max).cwiseMax(ctx.scratch.du_min);
+    ctx.ws.U = ctx.ws.z;
+    ctx.ws.lambda.setZero();
+}
+
+int admm_solve(NmpcContext &ctx, float u_hover, const UStackVec &U_ref)
+{
+    // box はモータごと（耐故障の η で FR 等を 0 に固定できる）。
+    // ⚠ warm_start_reset_to_ref() が du_min/du_max を使うので、box を先に張る。
+    delta_u_bounds_fill(ctx, u_hover);
+
     if (!ctx.ws.valid) {
-        ctx.ws.U.setZero();
-        ctx.ws.z.setZero();
-        ctx.ws.lambda.setZero();
+        warm_start_reset_to_ref(ctx, U_ref);
         ctx.ws.valid = true;
     }
-
-    // box はモータごと（耐故障の η で FR 等を 0 に固定できる）
-    delta_u_bounds_fill(ctx, u_hover);
     const float rho = rti::admm_rho;
 
     // ctx.scratch.admm_neg_c には compute_neg_const_term() が入れた -c が入っている。
@@ -455,9 +469,7 @@ int admm_solve(NmpcContext &ctx, float u_hover)
     // 置き換え、スロットルに関係なく全発 0.1 で回り続ける固着になる。
     // ここで捨てて Δu=0（=水平ホバー指令）に落とし、次周期はフル再構築からやり直す。
     if (!ctx.ws.z.allFinite() || !ctx.ws.U.allFinite() || !ctx.ws.lambda.allFinite()) {
-        ctx.ws.U.setZero();
-        ctx.ws.z.setZero();
-        ctx.ws.lambda.setZero();
+        warm_start_reset_to_ref(ctx, U_ref);
         ctx.ws.valid = false;
         ctx.need_full_rebuild = true;
         ctx.rebuild_cause_pending = NMPC_REBUILD_SR2_UNHEALTHY;
@@ -470,15 +482,39 @@ int admm_solve(NmpcContext &ctx, float u_hover)
     // 0911_v12 はこの経路で 8 周期かけて発散し、2.5 deg のピッチ誤差にフルの機首上げを出した。
     // 単発のスパイクは健全便でも起きる（v10 で 3 周期連続）ので、**連続回数で見る**。
     // 条件を「< 上限」の否定で書くのは NaN も拾うため。
-    if (!(ctx.ws.z.squaredNorm() < rti::ulin_max * rti::ulin_max)) {
+    //
+    // ---- 2026-09-15: 判定を **U_ref からの乖離** に変えた ----
+    // 旧実装は |z| を原点基準で測っていた。健全時は U_ref = 0 なので原点が正しい参照だが、
+    // **耐故障時は U_ref ≠ 0 で、最適解そのものが原点から大きく離れる。**
+    //   u_ref_shift = [-u_h, +u_h/2 ×4, -u_h] を N 段積むので
+    //   |U_ref| = u_h·sqrt(N·(2·1² + 4·0.5²)) = sqrt(42)·u_h = 6.48·u_h
+    // 実測の回帰係数は 6.256（0915_100Hz_v1, n=378, R=0.87）で理論と一致した。
+    // → ulin_max = 1.0 は u_hover > 0.16 で必ず超える。313 g の 4 発ホバー u_hover = 0.558 では
+    //   |U_lin| = 3.49 = **閾値の 3.5 倍**。つまり離陸できる推力では 100% 誤発火する。
+    // 実機 0915_100Hz_v1 では ulin_reset=198、50 ms ごとに warm start 破棄 → 39 ms のフル再構築、
+    // その間 ZOH で「健全 5 発すべて u_hover」（ヨートルク +u_hover ＝ +194 deg/s²）を
+    // **飛行時間の 50%** 出し続け、ヨーが +221 deg/s まで発散して墜落した。
+    //
+    // 健全時は U_ref = 0 なので式は旧実装と**完全に一致**する。v12 墜落の検出能力
+    //（t=19.78 発火、q の跳ねの 0.08 s 前）はそのまま保たれる。
+    // 根拠: docs/ai/decisions/20260915_ulin_guard_misfires_under_ftc.md
+    if (!((ctx.ws.z - U_ref).squaredNorm() < rti::ulin_max * rti::ulin_max)) {
         if (++ctx.ulin_hot_run >= rti::ulin_max_run) {
             ctx.ulin_hot_run = 0;
-            ctx.ws.U.setZero();
-            ctx.ws.z.setZero();
-            ctx.ws.lambda.setZero();
+            // ---- 2026-09-15: フル再構築を**要求しない**（案 A）----
+            // このガードが止めたいのは線形化点の暴走であって、Hessian は壊れていない。
+            // 旧実装は need_full_rebuild を立てていたため、発火のたびに 39 ms のフル再構築が入り、
+            // 100 Hz ループが 3 ティック落として **その間 ZOH で古い duty を保持**していた。
+            // 0915_100Hz_v1 では 50 ms ごとに発火したので、飛行時間の 50% がこのストールだった。
+            // warm start を U_ref へ戻せば、次周期は通常の TR1/SR2 パス（9.5 ms）で
+            // U_ref 周りに再線形化される。
+            // ⚠ TR1 はランク 1 更新なので z → U_ref の大ジャンプを 1 回で捉えきれないことがある。
+            //   その場合は secant ガードが TR1 を skip し、SR2 の健全性チェックが
+            //   本当に壊れたときだけフル再構築を要求する（degradation は graceful）。
+            // ⚠ 非有限（安全弁 2）と LLT 不健全は今まで通りフル再構築を要求する。
+            //   あちらは Hessian そのものが使えないので 39 ms を払う価値がある。
+            warm_start_reset_to_ref(ctx, U_ref);
             ctx.ws.valid = false;
-            ctx.need_full_rebuild = true;
-            ctx.rebuild_cause_pending = NMPC_REBUILD_SR2_UNHEALTHY;
             ctx.diag.cnt_ulin_reset++;
         }
     } else {
@@ -725,7 +761,7 @@ void nmpc_step(NmpcContext &ctx,
 #else
     compute_neg_const_term(ctx, x0, X_ref, U_ref);
 #endif
-    ctx.last_admm_iters = admm_solve(ctx, u_hover);
+    ctx.last_admm_iters = admm_solve(ctx, u_hover, U_ref);
 
     // admm_solve が張り直した box をそのまま使う（モータごと）
     for (int j = 0; j < mpc::NU; ++j) {
