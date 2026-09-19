@@ -76,6 +76,8 @@ int main(void)
   {
     board_led_poll();
     debug_poll_pending_messages();
+    // 2026-09-19: アーム状態機械 / LED / モータ出力経路の常時ダンプ（原因究明用）
+    debug_stream_poll();
     // NMPC ベンチ (10Hz): シリアル CSV と/または Wi-Fi テレメ。NMPC_BENCH_LOG 未定義時は no-op。
     if (time_us_32() - last_bench_print > 100000)
     {
@@ -83,7 +85,12 @@ int main(void)
       debug_print_nmpc_bench();
     }
     tight_loop_contents();
-    while (Logoutputflag==1){
+    // ⚠ 2026-09-19: while -> if。log_output() は 1 呼び出しで 1 行出す設計なので
+    // if でも吸い出しは進む。while だと Arm_flag==4 が毎 400Hz で Logoutputflag=1 を
+    // 書き直すためこの内側から抜けられなくなり、**board_led_poll() も
+    // debug_stream_poll() も止まる**。今回 USB シリアルに #dbg が 1 行も出なかったのは
+    // （ファーム自体が古かった可能性と併せて）この構造も効く。
+    if (Logoutputflag==1){
       log_output();
     }
   }

@@ -61,6 +61,17 @@ struct NmpcStepDiag {
     uint32_t cnt_admm_lambda_reset;  // |lambda| 上限で双対をリセットした回数
     uint32_t cnt_nonfinite;          // 解が非有限になり warm-start を破棄した回数
     uint32_t cnt_ulin_reset;         // |U_lin| の暴走を検知して warm-start を畳んだ回数
+
+    // ---- 2026-09-19 追加: TR1 skip の実機分布を見るための観測量 ----
+    // tr1_c_max = 1e6 は 2026-09-10 の**ホストリプレイ**で決めたが、そのリプレイは
+    // 再構築を 1.14 回/秒と予測したのに実機は 2.6-2.8 回/秒だった。
+    // **実機の |c| 分布を見ないまま閾値を触らない**ため、3 つとも 100Hz ログへ出す。
+    // 詳細: docs/ai/decisions/20260919_tr1_skip_is_self_reinforcing_not_random.md
+    // ⚠ フル再構築の周期 (path=1) では tr1_update_sx_su() が呼ばれないことがあるので、
+    //   そのときは前周期の値が残る。TR1 skip 由来の再構築では当該周期の値が入る。
+    float    last_tr1_c;             // 割線更新の大きさ c = u_rk1^T Q u_rk1（0 = 未計算）
+    float    last_secant_norm_sq;    // |s_x|^2 + |s_u|^2（c の分母。2 乗で効く）
+    uint16_t last_tr1_skip_run;      // その周期終了時点の連続 skip 回数
 };
 
 // Stacked types (compile-time fixed sizes)
@@ -101,6 +112,13 @@ struct NmpcScratch {
     // モータごとの Δu box (耐故障の η による縮減)。毎周期先頭で作り直す。
     UStackVec du_min;
     UStackVec du_max;
+    // ⚠ 2026-09-19 追加: **実際にモータへ出す解**。
+    // 安全弁 3 (|U_lin| ガード) は ws.z を U_ref へ戻すが、それは
+    // 「次周期の線形化点を戻す」ためであって、**この周期の制御出力を捨てるためではない**。
+    // 旧実装は nmpc_step が ws.z をそのまま読んでいたため、発火した周期の Δu が全発 0 に
+    // なっていた（= 姿勢補正なし）。0919_v6 の墜落の直接原因。
+    // 安全弁 2 (非有限) のリセットは**出力にも効かせる**ので、コピーはその後で取る。
+    UStackVec z_applied;
 };
 
 // NMPC 状態（呼び出し側で 1 度だけ allocate）

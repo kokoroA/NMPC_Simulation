@@ -26,11 +26,24 @@
 
 #define MODE_SW 10
 #define LANDING_SW 11
-#define LOG 6
+// スイッチ判定用の中央しきい値。SBUS 生値 (0-2047) の実効中央。
+// ⚠ CH5MAX/CH5MIN は「ch5 の」較正値だが、値としては全チャンネル共通の中央として使える。
+//    チャンネルを移したときに名前が嘘にならないよう、別名で参照する。
+#define SW_MID ((CH5MAX + CH5MIN) / 2)
+// 2026-09-16: 送信機側の割り当てに合わせてチャンネルを変更した。
+//   LOG   6 -> 4 -> 7      SERVO 4 -> 6 -> 4
+// ⚠ LOG が 7 に入ったので、旧 LINETRACE(7) とは共存できない。LINETRACE は定義ごと廃止し、
+//    残っていた参照も control.cpp 側で始末してある。
+// ⚠ しきい値の流儀はチャンネルごとにバラバラ（>200 / >500 / 中央値）。マクロを入れ替えても
+//    しきい値は追随しないので、チャンネルを動かすときは必ず control.cpp 側も確認すること。
+//    - logging() / logdata_out_com() の LOG 判定は SW_MID（中央しきい値）を使う。
+//      2/3 ポジション・ボリュームのどれでも効くので、スイッチ種別が変わっても壊れない。
+//    - servo_control() の SERVO 判定は従来どおり (SERVO_MAX+SERVO_MIN)/2 = 1024。
+#define LOG 7
 #define SERVO 4
 // #define REDCIRCLE 5
 #define FTC 5
-#define LINETRACE 7
+// #define LINETRACE 7   ← LOG 7 と衝突するため廃止（2026-09-16）
 // #define T_ref_up 7
 #define ROCKING 200 //8
 #define HOVERING 8

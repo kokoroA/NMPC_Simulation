@@ -54,6 +54,9 @@ void rgbled_off(void);
 void debug_print_gyro(void);
 void debug_print_nmpc_bench(void);
 void debug_poll_pending_messages(void);
+// USB シリアル常時デバッグ出力 (2026-09-19)。**core0 の main からのみ呼ぶこと。**
+// 無効化は control.cpp の NMPC_DEBUG_STREAM を 0 にする。
+void debug_stream_poll(void);
 
 //グローバル変数
 // ---- 耐故障(FTC)モード ----
@@ -101,6 +104,7 @@ extern uint8_t Bench_phase;    // 0=待機 1=ramp/spin 2=step 3=decay 4=終了
 
 extern uint8_t LockMode;
 extern volatile uint8_t Logoutputflag;
+extern volatile uint8_t g_log_cols_written;  // logging() が実際に書いた列数 (DATANUM 検証用)
 extern float ideal;
 extern float input;
 extern float lotated_distance;

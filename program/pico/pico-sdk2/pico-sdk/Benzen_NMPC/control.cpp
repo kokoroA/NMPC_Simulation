@@ -1,4 +1,5 @@
 #include "control.hpp"
+#include "pwm.hpp"
 #include "rgbled.hpp"
 
 // ============================================================================
@@ -151,6 +152,28 @@ int8_t  Ftc_target_motor = MOTOR_FR;
 uint8_t Ftc_mode = 0;                                   // 0=健全, 1=FTC
 float   Motor_eta[NUM_MOTOR] = {1.f,1.f,1.f,1.f,1.f,1.f};  // 0=故障, 1=健全
 
+// ---- relaxed hover（機体を傾けて回し、推力余裕を作る）----
+// 1 発停止で「故障発とその対角を 0」にすると、担当 4 発はホバーだけで duty 0.939 を使い、
+// 0.95 まで **0.011 しか残らない**（姿勢権限は健全時の 1/76）。傾けて回すと余地が 0.21 前後まで戻る。
+//
+// ⚠ 既定 0。**ソースを書き換えて焼き直すまで一切作動しない。**
+//    飛行中に誤って入らないよう、意図的に RC スイッチへ割り当てていない。
+// ⚠ 下の平衡は **Cr = 1.0e-4 を仮定して解いた暫定値**。Cr 同定後に必ず入れ替えること。
+//    Cr が 3.7e-4 なら Ω=400 deg/s・傾き -10 deg 側、9.0e-4 なら Ω=300 deg/s・-14 deg 側へ寄る。
+//    ⚠ 誤った Cr の参照は「最適でない」では済まず、Cr=3.7e-4 では Ω=700 に**解が存在しない**。
+// ⚠ この表は **Ftc_target_motor == MOTOR_FR 専用**。他の発を止めるときは解き直すこと
+//    （下の適用側でも MOTOR_FR 以外は作動しないようにガードしてある）。
+// 根拠: docs/ai/decisions/20260916_relaxed_hover_reachable_in_sim_cr_mismatch_is_the_real_blocker.md
+uint8_t Relax_enable = 0;                 // 1 で有効（要ビルド）
+uint8_t Relax_active = 0;                 // 実際に効いているか（ログ/デバッグ用）
+// x_eq = [phi, theta, p, q, r]  [rad, rad/s]  = [-5.0 deg, -6.0 deg, +76.3, -63.3, +723.2 deg/s]
+float   Relax_x_eq[5]           = { -0.08727f, -0.10472f, 1.33179f, -1.10436f, 12.62289f };
+// u_eq = 絶対 duty [FR,FL,MR,ML,RR,RL]。FR は故障発なので 0。peak 0.7172（余地 0.2328）
+float   Relax_u_eq[NUM_MOTOR]   = { 0.0f, 0.6881f, 0.6930f, 0.7123f, 0.7172f, 0.7068f };
+// 参照を「静的 FTC の釣り合い点」から「回転平衡」へ寄せる秒数。
+// ⚠ ステップで切り替えると立ち上がりで duty 飽和が 10% 出る。3 s ランプで 0% になった（ホストシミュ）。
+float   Relax_ramp_s            = 3.0f;
+
 // ---- ベンチ加振モード (システム同定用) ----
 // ★実験条件はこのブロックの値を書き換えるだけで変えられる★
 //   Bench_mode = BENCH_OFF        通常飛行 (既定)
@@ -199,6 +222,13 @@ static const uint32_t FS_RX_TIMEOUT_US = 200000;
 // 加速度は LSM9DS1 が ±16g 設定 = 最大 157 m/s^2 なので、旧値 800 は到達不能だった。
 static const float FS_ATTITUDE_LIMIT = 90.0f * (float)M_PI / 180.0f;
 static const float FS_RATE_LIMIT     = 360.0f * (float)M_PI / 180.0f;
+// ---- 2026-09-16: relaxed hover 用の緩和値 ----
+// relaxed hover の平衡回転数は Cr 依存で 300-775 deg/s、立ち上がりのオーバーシュート込みで
+// 実測ピーク 751 deg/s（ホストシミュ）。360 deg/s のままでは平衡に到達した瞬間に停止する。
+// ⚠ Ftc_mode のときだけ使う。健全飛行は FS_RATE_LIMIT のまま一切変えない。
+// ⚠ 姿勢フェイルセーフ(90 deg)は緩めない。relaxed hover の傾きは 4-14 deg なので安全網として残す。
+// 根拠: docs/ai/decisions/20260916_relaxed_hover_prize_is_cr_independent_and_ekf_drift_guard_will_misfire.md
+static const float FS_RATE_LIMIT_FTC = 1200.0f * (float)M_PI / 180.0f;
 static const float FS_ACC_LIMIT      = 150.0f;  // ≈15g。誤検知で飛行中に止まる方が危険なので高めから始める
 // SBUS FRAME_LOST(0x04) は 1 フレーム取りこぼしただけで立つ。単発で空中のモータを永久に切るのは
 // 過剰なので、連続してこの本数立ち続けたときだけ発動させる。
@@ -224,15 +254,19 @@ uint16_t LogdataCounter = 0;
 uint8_t Logflag = 0;
 volatile uint8_t Logoutputflag = 0;
 volatile uint8_t g_arm2_debug_pending = 0;
+// ⚠ logging() が実際に書いた列数。DATANUM とずれると**次の行へはみ出してログが壊れる**。
+// 列を足したら DATANUM も直すこと。ヘッダに出しているので吸い出しで一目で分かる。
+volatile uint8_t g_log_cols_written = 0;
 float Log_time = 0.0;
 // ---- 100Hz 機内ログ（リングバッファ）----
 // 2026-09-04: 「先頭 14.5 秒を記録して満杯で停止」から「直近 N 秒を常に保持」へ変更。
 //   墜落解析では最後の数秒が要るのに、旧実装では離陸直後で満杯になり肝心の場面が残らなかった。
 //   列も PID 時代のもの（P_com/altitude/ideal/T_stick/input 等・NMPC では未使用）から
 //   NMPC 用（6 発の duty・ソルバ時間・フェイルセーフ）へ差し替えた。
-const uint8_t DATANUM = 30;                            // 1 サンプルあたりの列数（2026-09-10: 22 -> 30）
+const uint8_t DATANUM = 33;                            // 1 サンプルあたりの列数（2026-09-10: 22 -> 30、2026-09-19: -> 33）
 const uint32_t LOGDATANUM = 65280;                     // = 30 * 2176。行数は据え置き（+52 KB）
-const uint16_t LOGROWS = (uint16_t)(LOGDATANUM / DATANUM);  // = 2176 行 = 21.8 秒 @100Hz
+                                                       // 2026-09-19: 33 列にしたので 65280/33 = 1978 行 = 19.8 秒
+const uint16_t LOGROWS = (uint16_t)(LOGDATANUM / DATANUM);  // = 1978 行 = 19.8 秒 @100Hz
 float Logdata[LOGDATANUM] = {0.0};
 static uint16_t LogRow = 0;        // 次に書き込む行
 static uint8_t  Log_wrapped = 0;   // 1 = 一周した（バッファ全体が有効）
@@ -284,6 +318,33 @@ volatile uint8_t g_motor_eta_dirty = 1;
 volatile uint8_t g_arm_gate_ok   = 0;   // 1 = 推定器が落ち着いた。0 = モータを回さない
 uint32_t g_arm_gate_wait_ms      = 0;   // 直近のアームでゲート通過までに要した時間 [ms]
 uint32_t g_arm_reinit_count      = 0;   // アーム時 EKF 再初期化の回数
+
+// ======================================================================
+//  USB シリアル常時デバッグ出力 (2026-09-19)
+//  目的: ディスアーム後に LED が緑点滅にならない／モータが無反応／急回転
+//        という症状の原因究明。**原因が分かったら NMPC_DEBUG_STREAM を 0 に戻す。**
+//  ⚠ printf は 400Hz IRQ からも 100Hz core1 からも呼ばない。ここでは volatile な
+//    ミラー変数に置くだけにして、出力は core0 の main ループ (debug_stream_poll)
+//    でまとめて行う。0911 の診断で必要だった状態変数が 1 つも観測できなかったのが
+//    この計装を入れる理由。docs/ai/decisions/20260911_v7_arm_gate_recountdown_and_led_unhandled_states.md
+// ======================================================================
+#define NMPC_DEBUG_STREAM 1
+
+// led_control() がどの枝を通ったか。**0 = どの枝にも当たらなかった（= WS2812 に
+// 一切書いていない = LED が直前の色のまま凍る）**。今回の本命。
+volatile uint8_t g_dbg_led_branch  = 0;
+// 400Hz の NMPC 出力段がどの経路を通ったか。
+// 0=未実行(Arm_flag!=2) 1=failsafe 2=離陸ゲート閉 3=スロットル下 4=出力 5=OverG
+volatile uint8_t g_dbg_out_path    = 0;
+// lock_com() / logdata_out_com() のデバウンス内部状態のミラー。
+// ⚠ 両関数は static カウンタを持つので main から呼んではいけない（状態機械が壊れる）。
+volatile uint8_t g_dbg_lock_chatta = 0;
+volatile uint8_t g_dbg_lock_state  = 0;
+volatile uint8_t g_dbg_dump_chatta = 0;
+volatile uint8_t g_dbg_dump_state  = 0;
+// 離陸ゲートが開かない理由。0=開いている 1=warm-up 中 2=EKF 残差が大きい
+// 3=残差の連続成立が不足 **4=スロットルが上がっている(2026-09-19 追加条件)**
+volatile uint8_t g_dbg_gate_why    = 1;
 static uint32_t g_nmpc_iter_us = 0;     // 直近の nmpc_step 所要時間 [us]
 
 // ---- 2026-09-11: 姿勢トリム（積分作用） ----
@@ -648,36 +709,69 @@ void receiveData(char c);
 #define KALMANWAIT 6000
 
 // // LED Control
+// ⚠ 2026-09-19 修正の中心: **点滅カウンタ cnt が全分岐で共有されている。**
+// 各分岐は `if (cnt == <周期>) cnt = 0;` と **完全一致**で折り返していたので、
+// 自分の周期より大きい cnt を持ったまま別の分岐に入ると **二度と折り返せない。**
+// 例: 消灯枝(周期100)を cnt=93 で抜けて離陸ゲート枝(周期80)に入る
+//     → cnt==80 は永久に成立せず 94,95,... と 65535 まで増え続ける
+//     → その間 cnt==0 も cnt==40 も来ないので **WS2812 に一度も書かれない。**
+// そして cnt が 100 を超えると**点滅する枝は全部死ぬ**。以後 LED を書くのは
+// 無条件の rgbled_wait() / rgbled_normal() だけになり、
+// **ディスアームしても飛行モードの色のまま固まる**（0919_v4.txt で実測・再現）。
+// アーム 1 回あたり cnt が 81..99 に居る確率は約 19%。アーム/ディスアームを
+// 繰り返すほど必ず踏む。docs/ai/decisions/20260919_led_blink_counter_runaway.md
+//
+// 対策は 2 段:
+//   (1) 分岐が変わったら cnt を 0 に戻す（位相も揃うので点滅の頭が必ず点灯になる）
+//   (2) 折り返しを `>=` にして、万一 cnt が大きくても 1 周期以内に復帰させる
+#define LED_BRANCH(n)                                  \
+  do {                                                 \
+    g_dbg_led_branch = (n);                            \
+    if (led_prev_branch != (n)) {                      \
+      led_prev_branch = (n);                           \
+      cnt = 0;                                         \
+    }                                                  \
+  } while (0)
+
 void led_control(void)
 {
   static uint16_t cnt = 0;
+  static uint8_t  led_prev_branch = 0xFF;
   if (Arm_flag == 0 || Arm_flag == 1)
+  {
+    LED_BRANCH(1);
     rgbled_wait();
+  }
 
   // ベンチ加振モード: 全周ピンクの速い点滅 (10Hz)。
   // 通常飛行と取り違えると危険なので、どのモードよりも先に判定する。
   else if (Arm_flag == 2 && Bench_mode != BENCH_OFF)
   {
+    LED_BRANCH(2);
     if (cnt == 0)
       rgbled_pink();
     if (cnt == 20)
       rgbled_off();
     cnt++;
-    if (cnt == 40)
+    if (cnt >= 40)
       cnt = 0;
   }
 
   // 離陸ゲート中: 全周赤の速い点滅 (5Hz)。**この間モータは回らない。**
   // 推定器が転倒姿勢から収束し切るのを待っている状態。通常は 2-4 秒で消える。
-  // 消えない場合は推定器かセンサに異常があるので、飛ばさずに電源を入れ直すこと。
+  // ⚠ 2026-09-19 以降、**スロットルを下げていることも開く条件**になった。
+  //    赤点滅が消えないときは、まず**スロットルが最下位置か**を確認すること
+  //    (ログの gwhy=4)。下げても消えないなら推定器かセンサの異常なので、
+  //    飛ばさずに電源を入れ直すこと (gwhy=1/2)。
   else if (Arm_flag == 2 && !g_arm_gate_ok)
   {
+    LED_BRANCH(3);
     if (cnt == 0)
       rgbled_red();
     if (cnt == 40)
       rgbled_off();
     cnt++;
-    if (cnt == 80)
+    if (cnt >= 80)
       cnt = 0;
   }
 
@@ -685,24 +779,29 @@ void led_control(void)
   // Flight_mode より先に判定して、どのモードでも FTC 中は必ずこの表示になるようにする。
   else if (Arm_flag == 2 && Ftc_mode)
   {
+    LED_BRANCH(4);
     if (cnt == 0)
       rgbled_normal();
     if (cnt == 50)
       rgbled_blue();
     cnt++;
-    if (cnt == 100)
+    if (cnt >= 100)
       cnt = 0;
   }
   else if (Arm_flag == 2 && Flight_mode == NORMAL)
+  {
+    LED_BRANCH(5);
     rgbled_normal();
+  }
   else if (Arm_flag == 2 && Flight_mode == MODE_HOVERING)
   {
+    LED_BRANCH(6);
     if (cnt == 0)
       rgbled_normal();
     if (cnt == 50)
       rgbled_pink();
     cnt++;
-    if (cnt == 100)
+    if (cnt >= 100)
       cnt = 0;
   }
   // REDCIRCLE モードは削除 (ch5 は FTC スイッチへ転用。red_circle は外部 UART 由来で未接続)
@@ -710,15 +809,25 @@ void led_control(void)
 
   else if (Arm_flag == 3)
   {
+    LED_BRANCH(7);
     if (cnt == 0)
       rgbled_green();
     if (cnt == 50)
       rgbled_off();
     cnt++;
-    if (cnt == 100)
+    if (cnt >= 100)
       cnt = 0;
   }
+
+  // ⚠ 2026-09-19 追加: **観測専用の else。LED 出力は一切変えない。**
+  //    ここに来る = if-else チェーンのどの枝にも当たらず WS2812 に書かずに抜けた
+  //    = LED が直前の色のまま凍る。現状唯一の未処理状態は Arm_flag == 4。
+  else
+  {
+    LED_BRANCH(0);
+  }
 }
+#undef LED_BRANCH
 
 // Main loop
 // This function is called from PWM Intrupt on 400Hz.
@@ -745,6 +854,7 @@ void loop_400Hz(void)
     Failsafe_flag = 0;
     Failsafe_cause = FS_NONE;
     Rx_framelost_run = 0;   // リンクが死んだまま再アームしても即発動しないようにする
+    g_dbg_out_path = 0;     // debug: rate_control() が呼ばれないので値を腐らせない
   }
 
   if (Arm_flag == 0)
@@ -1088,13 +1198,19 @@ uint8_t lock_com(void)
     state = 0;
   }
 
+  g_dbg_lock_chatta = chatta;   // debug (2026-09-19)
+  g_dbg_lock_state  = state;
   return state;
 }
 
 uint8_t logdata_out_com(void)
 {
   static uint8_t chatta = 0, state = 0;
-  if (Chdata[4] < (CH5MAX + CH5MIN) * 0.5 && Chdata[2] < CH3MIN + 80 && Chdata[0] < CH1MIN + 80 && Chdata[3] > CH4MAX - 80 && Chdata[1] > CH2MAX - 80)
+  static uint8_t prev  = 0;
+  // 2026-09-16: 直書きの Chdata[4] を Chdata[LOG] にした。
+  // ⚠ 従来は ch4 = SERVO だったので「ペイロード投下スイッチが下」で吸い出しが始まっていた。
+  //    LOG/SERVO の入れ替えに合わせ、「ログを止めてから吸い出す」という意図の形に直す。
+  if (Chdata[LOG] < SW_MID && Chdata[2] < CH3MIN + 80 && Chdata[0] < CH1MIN + 80 && Chdata[3] > CH4MAX - 80 && Chdata[1] > CH2MAX - 80)
   {
     chatta++;
     if (chatta > 50)
@@ -1109,7 +1225,20 @@ uint8_t logdata_out_com(void)
     state = 0;
   }
 
-  return state;
+  g_dbg_dump_chatta = chatta;   // debug (2026-09-19)
+  g_dbg_dump_state  = state;
+
+  // ⚠ 2026-09-19 修正: **立ち上がり (0->1) のときだけ 1 を返す。**
+  // 従来は state が 1 のままラッチされ続けた。呼び出し側 (Arm_flag==3) は毎 400Hz で
+  // これを見ているので、log_output() が最後に Arm_flag=3 / LockMode=0 へ戻した次の周期に
+  // 即座にまた Arm_flag=4 へ落ちる。スティックを離すまで吸い出しが止まらない。
+  //   実測 (tools/0919_v2.txt): 同一ヘッダの吸い出しが **471 回連続**。
+  // その間 Arm_flag==4 なので motor_stop() が毎周期走り (= スロットル無反応)、
+  // led_control() には Arm_flag==4 の枝が無いので LED は直前の色で凍る。
+  // ここをエッジにすれば「1 回の操作で 1 回だけ吸い出す」という本来の意図になる。
+  const uint8_t edge = (uint8_t)(state == 1 && prev == 0);
+  prev = state;
+  return edge;
 }
 
 // ---- 安全弁 3: 姿勢推定 (EKF) の破綻検出と再初期化 ----
@@ -1124,6 +1253,10 @@ uint32_t Ekf_reset_count = 0;
 static float    g_duty_hist[G_DUTY_HIST_N][NUM_MOTOR];
 static int      g_duty_hist_idx = 0;            // 次に書く位置
 uint32_t        g_delay_pred_nonfinite = 0;     // 予測が非有限になり x0 をそのまま使った回数
+// NMPC に実際に渡した参照 [phi_ref, theta_ref, r_ref]。ログ用。
+// ⚠ 健全時・トリム無効時は Phi_ref / Theta_ref / Psi_ref と数値的に同一。
+//    relaxed hover 中だけ平衡値へ寄った値になるので、ログで遷移が追える。
+static float    g_xref_log[3] = {0.0f, 0.0f, 0.0f};
 static void duty_hist_push(void)
 {
   g_duty_hist[g_duty_hist_idx][0] = FR_duty;
@@ -1150,6 +1283,14 @@ float    Ekf_drift_theta = 0.0f;   // [rad/s]
 //   5 deg/s/0.2 s : 飛行中の誤発火 0（0904_v5 の着陸バウンド時 1 回のみ）。
 //                   偽の傾き 2 件は離陸の約 1 秒前（18.4 s / 10.7 s）に検知できる。
 static const float EKF_DRIFT_LIMIT   = 5.0f * (float)M_PI / 180.0f;  // 5 deg/s
+// ---- 2026-09-16: relaxed hover 中は 5 deg/s では必ず誤発火する ----
+// この監視は「EKF の姿勢変化率」と「ジャイロから作ったオイラー角速度」の残差を見る。
+//   phi_dot_g = p + sin(phi)tan(theta) q + cos(phi)tan(theta) r
+// Omega = 775 deg/s, theta = -6 deg では cos(phi)tan(theta)r だけで -76 deg/s になり、
+// 閾値 5 deg/s は **その 6.6%**。数 % の不整合で 0.2 s ごとに ekf_bias_reset() が走る。
+// 実測: 静的 FTC 便 0916_100Hz_FTC_v1 は ekf_bias_reset=6、健全便は 0。
+// ⚠ 離陸ゲートは別定数 EKF_GATE_LIMIT を使うのでここを緩めても開きやすくはならない。
+static const float EKF_DRIFT_LIMIT_FTC = 60.0f * (float)M_PI / 180.0f;
 static const float EKF_DRIFT_LPF_A   = 0.0323f;                        // τ≈0.3 s @100Hz
 static const uint8_t EKF_DRIFT_RUN_N = 20;                             // 0.2 s 連続で超えたら発火
 
@@ -1266,7 +1407,12 @@ static void ekf_drift_update(void)
   Ekf_drift_phi   += EKF_DRIFT_LPF_A * (res_phi   - Ekf_drift_phi);
   Ekf_drift_theta += EKF_DRIFT_LPF_A * (res_theta - Ekf_drift_theta);
 
-  const bool over = !(fabsf(Ekf_drift_phi) <= EKF_DRIFT_LIMIT) || !(fabsf(Ekf_drift_theta) <= EKF_DRIFT_LIMIT);
+  // ⚠ 2026-09-16 訂正: 緩めるのは relaxed hover を有効にしたときだけ。
+  //    静的 4 発 FTC は回転しないので、従来の 5 deg/s を残す
+  //    （0916_100Hz_FTC_v1 の ekf_bias_reset=6 は departure に伴うもので、
+  //     しきい値を緩めても departure 自体は防げない）。
+  const float drift_lim = (Ftc_mode && Relax_enable) ? EKF_DRIFT_LIMIT_FTC : EKF_DRIFT_LIMIT;
+  const bool over = !(fabsf(Ekf_drift_phi) <= drift_lim) || !(fabsf(Ekf_drift_theta) <= drift_lim);
   if (over) { if (++run >= EKF_DRIFT_RUN_N) { ekf_bias_reset(); run = 0; } }
   else run = 0;
 
@@ -1278,19 +1424,56 @@ static void ekf_drift_update(void)
     if ((uint32_t)(time_us_32() - g_arm_gate_t0) < EKF_GATE_WARM_US)
     {
       g_arm_gate_hold = 0;
+      g_dbg_gate_why = 1;
     }
     else if (fabsf(Ekf_drift_phi) < EKF_GATE_LIMIT && fabsf(Ekf_drift_theta) < EKF_GATE_LIMIT)
     {
-      if (++g_arm_gate_hold >= EKF_GATE_HOLD_N)
+      // ⚠ hold は飽和させるだけにして、ゲートを開ける判定と分ける。
+      //    こうしないと下のスロットル条件で弾かれるたびに EKF の収束実績が捨てられ、
+      //    スロットルを下げた後にまた 1 秒待たされる。
+      if (g_arm_gate_hold < EKF_GATE_HOLD_N)
+        g_arm_gate_hold++;
+
+      // ---- 2026-09-19 追加: スロットルが上がったままではゲートを開けない ----
+      // ゲートが閉じている間 400Hz 側は motor_stop() (= duty 0) を出し続ける。
+      // 従来はここでスロットルを見ていなかったので、「回らないから」とスティックを
+      // 上げたまま 2.5 秒待つと、**開いた次の 400Hz 周期 (2.5 ms) で duty が 0 から
+      // common_duty へ一気に跳んだ**。スティック 37% で既に上限 0.95 に達する効きなので、
+      // ホバー相当 (0.55) を大きく超える急加速になる。
+      //   訴え: 「スロットルを上げても反応しない時にもう少し上げると急にスラスターが
+      //           急回転しました」
+      // 対策は「スティックを一度下げるまで開けない」。アーム自体が sticks_neutral() で
+      // 既に低スロットルを要求しているので、操作の一貫性も取れる。
+      // ⚠ ベンチ加振モードはスロットルがデッドマンスイッチなので対象外
+      //    (そもそも 400Hz 側はベンチではゲートを見ない)。
+      const bool throttle_low = (T_ref * T_ref_coe) < Disable_duty;
+      if (g_arm_gate_hold >= EKF_GATE_HOLD_N)
       {
-        g_arm_gate_ok = 1;
-        g_arm_gate_wait_ms = (time_us_32() - g_arm_gate_t0) / 1000u;
+        if (Bench_mode != BENCH_OFF || throttle_low)
+        {
+          g_arm_gate_ok = 1;
+          g_arm_gate_wait_ms = (time_us_32() - g_arm_gate_t0) / 1000u;
+          g_dbg_gate_why = 0;
+        }
+        else
+        {
+          g_dbg_gate_why = 4;   // スロットルを下げれば即開く
+        }
+      }
+      else
+      {
+        g_dbg_gate_why = 3;
       }
     }
     else
     {
       g_arm_gate_hold = 0;
+      g_dbg_gate_why = 2;
     }
+  }
+  else
+  {
+    g_dbg_gate_why = 0;
   }
 }
 
@@ -1439,11 +1622,18 @@ static void failsafe_check(void)
     // スロットルが死んだ（20260914_bench_yaw_excite_blocked_by_fs_rate.md）。
     if (Bench_mode == BENCH_OFF)
     {
+      // 角速度の上限を緩めるのは **relaxed hover を有効にしたときだけ**。
+      // ⚠ 2026-09-16 訂正: 当初は Ftc_mode だけで緩めていたが、それだと
+      //    「静的 4 発 FTC（回転させない）」の試験でも保護が 360 -> 1200 deg/s に弱まる。
+      //    静的 4 発では r は高々 90 deg/s 程度なので、360 deg/s の保護を残すのが正しい。
+      //    Relax_enable はソースを書き換えないと 1 にならないので、既定では常に従来値。
+      const bool relax_limits = (Ftc_mode && Relax_enable);
+      const float rate_lim = relax_limits ? FS_RATE_LIMIT_FTC : FS_RATE_LIMIT;
       if (fabsf(phi_e) > FS_ATTITUDE_LIMIT || fabsf(theta_e) > FS_ATTITUDE_LIMIT)
         cause = FS_ATTITUDE;
-      else if (fabsf(Wp - Pbias) > FS_RATE_LIMIT ||
-               fabsf(Wq - Qbias) > FS_RATE_LIMIT ||
-               fabsf(Wr - Rbias) > FS_RATE_LIMIT)
+      else if (fabsf(Wp - Pbias) > rate_lim ||
+               fabsf(Wq - Qbias) > rate_lim ||
+               fabsf(Wr - Rbias) > rate_lim)
         cause = FS_RATE;
     }
   }
@@ -1584,9 +1774,15 @@ void Merker_Hovering(void){
 void servo_control(void)
 { 
   if (Chdata[SERVO] > (SERVO_MAX + SERVO_MIN) / 2)
-    payload_relese();
+    payload_half();
   if (Chdata[SERVO] < (SERVO_MAX + SERVO_MIN) / 2)
-    payload_hook();
+    payload_relese();
+  // if (Chdata[SERVO] <800 )
+  //   payload_relese();
+  // if (Chdata[SERVO] < 3075)
+  //   payload_hook();
+  // if (Chdata[SERVO] < 1900)
+  //   payload_half();
   // if (Flight_mode == NORMAL){
   //   if (Chdata[SERVO] > (SERVO_MAX + SERVO_MIN) / 2 && Flight_mode == NORMAL)
   //     payload_relese();
@@ -2010,10 +2206,12 @@ void rate_control(void)
     const float common_duty = T_ref * T_ref_coe;  // 姿勢ゼロ時の PWM
     if (Failsafe_flag)
     {
+      g_dbg_out_path = 1;
       motor_stop();   // フェイルセーフ成立中は何があっても出力しない
     }
     else if (!g_arm_gate_ok && Bench_mode == BENCH_OFF)
     {
+      g_dbg_out_path = 2;
       // 離陸ゲート: 推定器が落ち着くまでスロットルを無視する（LED = 赤の速い点滅）。
       // ベンチ加振モードは姿勢推定を使わないので対象外。
       motor_stop();
@@ -2026,6 +2224,7 @@ void rate_control(void)
     }
     else if (common_duty < Disable_duty)
     {
+      g_dbg_out_path = 3;
       motor_stop();
       // NMPC warm-start 破棄は angle_control の !nmpc_run で行う。
       // ここで毎 400Hz 呼ぶと TR1/SR2 が育たずフル再構築が連続する。
@@ -2044,6 +2243,7 @@ void rate_control(void)
     }
     else
     {
+      g_dbg_out_path = (OverG_flag == 0) ? 4 : 5;
       if (OverG_flag == 0)
       {
         
@@ -2181,7 +2381,10 @@ void angle_control(void)
       Pref = phi_pid.update(phi_err);
       Qref = theta_pid.update(theta_err);
       Rref = psi_pid.update(psi_err);
-      if (Flight_mode != LINETRACE)
+      // ⚠ 2026-09-16: LINETRACE の定義を廃止したのでリテラルにした。
+      //    Flight_mode に 7 が入る経路は既に無い（モード設定側は全てコメントアウト済み）ので
+      //    この条件は常に真＝ Rref = Psi_ref。挙動は従来と同じ。
+      if (Flight_mode != 7)
       {
         Rref = Psi_ref;
       }
@@ -2429,6 +2632,45 @@ void angle_control(void)
         att_trim_apply_ref(x_ref(0), x_ref(1), x_ref(4));
       }
 
+      // ---- relaxed hover: 参照を回転平衡へランプで寄せる（2026-09-16）----
+      // ⚠ Relax_enable=0 の間は relax_s が常に 0 で、x_ref も u_ref_shift も一切変わらない。
+      //    健全飛行（Ftc_mode=0）では relax_on が立たないので同じく無影響。
+      float relax_s = 0.0f;
+      {
+        static uint32_t relax_t0   = 0;
+        static uint8_t  relax_prev = 0;
+        const uint8_t relax_on = (Relax_enable && Ftc_mode &&
+                                  Ftc_target_motor == MOTOR_FR) ? 1u : 0u;
+        if (relax_on && !relax_prev) relax_t0 = time_us_32();   // 立ち上がりで時刻を打つ
+        relax_prev  = relax_on;
+        Relax_active = relax_on;
+        if (relax_on)
+        {
+          relax_s = (Relax_ramp_s > 0.0f)
+                      ? ((float)(time_us_32() - relax_t0) * 1.0e-6f / Relax_ramp_s)
+                      : 1.0f;
+          if (relax_s > 1.0f) relax_s = 1.0f;
+          if (relax_s < 0.0f) relax_s = 0.0f;
+        }
+      }
+      if (relax_s > 0.0f)
+      {
+        // 姿勢・角速度の参照をスティック由来から平衡値へ。s=0 で現行と厳密に一致する。
+        for (int i = 0; i < nmpc::mpc::NX; ++i)
+          x_ref(i) = (1.0f - relax_s) * x_ref(i) + relax_s * Relax_x_eq[i];
+        // U_ref も「静的 FTC の釣り合い点」から「回転平衡の絶対 duty」へ。
+        // ⚠ FR は Relax_u_eq[0]=0 なので target = -u_hover となり、ブレンドしても絶対 0 のまま。
+        for (int j = 0; j < nmpc::mpc::NU; ++j)
+        {
+          const float target = Relax_u_eq[j] - u_hover;
+          u_ref_shift[j] = (1.0f - relax_s) * u_ref_shift[j] + relax_s * target;
+        }
+      }
+      // ログ用に「実際に追従させた参照」を残す（健全時は Phi_ref/Theta_ref/Psi_ref と同値）
+      g_xref_log[0] = x_ref(0);
+      g_xref_log[1] = x_ref(1);
+      g_xref_log[2] = x_ref(4);
+
       for (int k = 0; k < nmpc::mpc::N; ++k)
       {
         for (int i = 0; i < nmpc::mpc::NX; ++i)
@@ -2497,9 +2739,9 @@ void angle_control(void)
       snap.p = Wp - Pbias;
       snap.q = Wq - Qbias;
       snap.r = Wr - Rbias;
-      snap.phi_ref = Phi_ref;
-      snap.theta_ref = Theta_ref;
-      snap.psi_ref = Psi_ref;
+      snap.phi_ref = g_xref_log[0];
+      snap.theta_ref = g_xref_log[1];
+      snap.psi_ref = g_xref_log[2];
       snap.t_ref = T_ref;
       snap.u_base = u_hover_snap;
       snap.schedule_alpha = 0.0f;
@@ -2561,7 +2803,11 @@ void logging(void)
 {
   // LOG スイッチが入っている間、100Hz でリングバッファに書き続ける。
   // 満杯になっても止めず、最も古い行から上書きする（＝常に直近 21.8 秒が残る）。
-  if (Chdata[LOG] > 200)
+  // ⚠ 2026-09-16: しきい値を >200 から中央値へ変更。LOG は ch4 に移ったが、ch4 は
+  //    logdata_out_com() / servo_control() が中央しきい値で扱ってきたチャンネルで、
+  //    下限が 172 まで落ちない可能性がある。>200 のままだと常時真になり、
+  //    リングログが回りっぱなしになる。中央しきい値なら 2/3 ポジション・ボリュームのどれでも効く。
+  if (Chdata[LOG] > SW_MID)
   {
     if (Logflag == 0)
     {
@@ -2614,7 +2860,9 @@ void logging(void)
       int box_n = 0;
       for (int j = 0; j < nmpc::mpc::NU; ++j)
       {
-        const float z = g_nmpc_ctx.ws.z(j);
+        // ⚠ 2026-09-19: ws.z ではなく z_applied。安全弁 3 が発火した周期は ws.z が
+        //    U_ref へ戻されているので、ws.z で数えると**出していない解の飽和数**になる。
+        const float z = g_nmpc_ctx.scratch.z_applied(j);
         if (z <= g_nmpc_ctx.scratch.du_min(j) + 1e-4f || z >= g_nmpc_ctx.scratch.du_max(j) - 1e-4f) box_n++;
       }
       int path = 0;
@@ -2623,10 +2871,19 @@ void logging(void)
       L[k++] = g_nmpc_ctx.ws.lambda.norm();                      // 28 lam_norm
       L[k++] = g_nmpc_ctx.scratch.U_lin.norm();                  // 29 ulin_norm
       L[k++] = (float)(path * 10 + box_n);                       // 30 solver_code
+      // ---- 2026-09-19 追加: TR1 skip の実機分布（対策D）----
+      // tr1_c_max=1e6 はホストリプレイで決めた値で、実機の再構築頻度を 2.4 倍外していた。
+      // 閾値を触る前に **実機の |c| 分布**を見るための 3 列。
+      // 詳細: docs/ai/decisions/20260919_tr1_skip_is_self_reinforcing_not_random.md
+      L[k++] = g_nmpc_ctx.diag.last_tr1_c;                       // 31 tr1_c
+      L[k++] = g_nmpc_ctx.diag.last_secant_norm_sq;              // 32 secant_nsq
+      L[k++] = (float)g_nmpc_ctx.diag.last_tr1_skip_run;         // 33 tr1_skip_run
     }
 #else
     L[k++] = 0.0f; L[k++] = 0.0f; L[k++] = 0.0f;
+    L[k++] = 0.0f; L[k++] = 0.0f; L[k++] = 0.0f;
 #endif
+    g_log_cols_written = k;   // DATANUM とずれていないかをヘッダで確認するため
 
     if (++LogRow >= LOGROWS)
     {
@@ -2650,8 +2907,9 @@ void log_output(void)
 
   if (out_i == 0)
   {
-    printf("#nmpc_log 100Hz rows=%lu cols=%u (%.1f s)\r\n",
-           (unsigned long)count, (unsigned)DATANUM, count * 0.01f);
+    printf("#nmpc_log 100Hz rows=%lu cols=%u written=%u (%.1f s)\r\n",
+           (unsigned long)count, (unsigned)DATANUM,
+           (unsigned)g_log_cols_written, count * 0.01f);
 #ifdef USE_NMPC
     // nmpc_params.hpp の各 namespace をそのまま印字（後解析でソースと突合できるように）
     printf("#params: N=%d dt=%.3f T_max=%.3f mass=%.3f Ct=%.3e CQ=%.3e C_QT=%.4f\r\n",
@@ -2687,15 +2945,32 @@ void log_output(void)
            nmpc::rti::delay_comp_steps, (unsigned long)g_delay_pred_nonfinite, (int)NMPC_LEGACY_SOLVER);
 #endif
     printf("#failsafe: 0=none 1=rx_lost 2=rx_timeout 3=attitude 4=rate 5=overg\r\n");
-    printf("#arm_gate: reinit=%lu wait_ms=%lu limit_dps=1.0 hold_s=1.0 warm_s=1.5\r\n",
-           (unsigned long)g_arm_reinit_count, (unsigned long)g_arm_gate_wait_ms);
-    printf("#ekf: bias_reset=%lu drift_lim_dps=%.1f lpf_tau_s=0.3 run_n=%u\r\n",
+    printf("#arm_gate: reinit=%lu wait_ms=%lu limit_dps=1.0 hold_s=1.0 warm_s=1.5 "
+           "thr_below=%.2f\r\n",
+           (unsigned long)g_arm_reinit_count, (unsigned long)g_arm_gate_wait_ms,
+           (double)Disable_duty);
+    printf("#ekf: bias_reset=%lu drift_lim_dps=%.1f lpf_tau_s=0.3 run_n=%u drift_lim_relax_dps=%.1f\r\n",
            (unsigned long)Ekf_bias_reset_count, (double)(EKF_DRIFT_LIMIT * 180.0f / (float)M_PI),
-           (unsigned)EKF_DRIFT_RUN_N);
+           (unsigned)EKF_DRIFT_RUN_N, (double)(EKF_DRIFT_LIMIT_FTC * 180.0f / (float)M_PI));
+    printf("#fs_limits: att_deg=%.0f rate_dps=%.0f rate_dps_relax=%.0f\r\n",
+           (double)(FS_ATTITUDE_LIMIT * 180.0f / (float)M_PI),
+           (double)(FS_RATE_LIMIT * 180.0f / (float)M_PI),
+           (double)(FS_RATE_LIMIT_FTC * 180.0f / (float)M_PI));
+    printf("#relax: enable=%u active=%u ramp_s=%.1f phi=%.1f theta=%.1f r=%.0f u_eq=%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\r\n",
+           (unsigned)Relax_enable, (unsigned)Relax_active, (double)Relax_ramp_s,
+           (double)(Relax_x_eq[0] * 180.0f / (float)M_PI),
+           (double)(Relax_x_eq[1] * 180.0f / (float)M_PI),
+           (double)(Relax_x_eq[4] * 180.0f / (float)M_PI),
+           (double)Relax_u_eq[0], (double)Relax_u_eq[1], (double)Relax_u_eq[2],
+           (double)Relax_u_eq[3], (double)Relax_u_eq[4], (double)Relax_u_eq[5]);
     printf("#solver_code: path*10+box_n  path 0=normal 1=rebuild 2=tr1_skip\r\n");
+    printf("#tr1: c=割線更新の大きさ(|c|>%.0e で skip) secant_nsq=|s_x|^2+|s_u|^2(c の分母、2乗で効く) "
+           "skip_run=連続skip数(%d でフル再構築)\r\n",
+           (double)nmpc::rti::tr1_c_max, nmpc::rti::tr1_skip_max_run);
     printf("#cols: t,phi,theta,p,q,r,phi_ref,theta_ref,psi_ref,T_ref,u_base,"
            "u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,iter_us,loop_us,cycles,failsafe,ftc,acc_norm,"
-           "ekf_bp,ekf_bq,ekf_br,ekf_dphi,ekf_dtheta,lam_norm,ulin_norm,solver_code\r\n");
+           "ekf_bp,ekf_bq,ekf_br,ekf_dphi,ekf_dtheta,lam_norm,ulin_norm,solver_code,"
+           "tr1_c,secant_nsq,tr1_skip_run\r\n");
     if (count == 0)
     {
       printf("#empty (LOG スイッチで記録していません)\r\n");
@@ -2740,6 +3015,93 @@ void gyroCalibration(void)
   Pbias = sump / N;
   Qbias = sumq / N;
   Rbias = sumr / N;
+}
+
+// ======================================================================
+//  USB シリアル常時デバッグ出力 (2026-09-19)
+//  **core0 の main ループからのみ呼ぶこと。** 400Hz IRQ / core1 からは呼ばない。
+//  離散状態が変わった瞬間に 1 行、変化が無くても 200ms ごとに 1 行出す。
+//  行頭は '#dbg' なので、既存の CSV パーサ (tools/) は従来どおりコメントとして捨てる。
+//  ⚠ 2026-09-19: main の吸い出しループを while -> if にしたので、**吸い出し中もここに来る。**
+//    行頭が '#' なので CSV パーサは落ちないが、吸い出した CSV に #dbg 行が混ざる。
+//  原因究明が済んだら NMPC_DEBUG_STREAM を 0 にする。
+// ======================================================================
+void debug_stream_poll(void)
+{
+#if NMPC_DEBUG_STREAM
+  static uint32_t last_us = 0;
+  static uint32_t last_key = 0xFFFFFFFFu;
+  static uint8_t  first = 1;
+
+  if (first)
+  {
+    first = 0;
+    printf("#dbg_cols: ms,arm,lock,gate,ghold,gwait,gwhy,fm,ftc,relax,bench,fs,og,"
+           "led,out,logout,nhold,lk,dm,Tref,cd,duty_fr..rl,ch[thr,rud,ele,ail,LOG,FTC,SRV],"
+           "rx_run,drift_phi_dps,drift_theta_dps\r\n");
+    printf("#dbg_led: 1=wait 2=bench 3=gate_red 4=ftc 5=normal 6=hovering 7=disarm_green "
+           "**0=どの枝にも当たらず WS2812 未更新(LED 凍結)**\r\n");
+    printf("#dbg_out: 0=rate_control未実行(Arm!=2) 1=failsafe 2=離陸ゲート閉 "
+           "3=スロットル下(common_duty<Disable_duty) 4=出力 5=OverG\r\n");
+    printf("#dbg_lk/dm: lock_com / logdata_out_com の chatta:state (50:1 で成立)\r\n");
+    printf("#dbg_gwhy: 離陸ゲートが開かない理由 0=開 1=warm-up 2=EKF残差大 3=連続成立待ち "
+           "**4=スロットルを下げれば開く**\r\n");
+  }
+
+  // 離散状態が 1 つでも変わったら即出す（10Hz のサンプル間で遷移が消えないように）
+  const uint32_t key =
+      ((uint32_t)Arm_flag)                 |
+      ((uint32_t)LockMode          <<  3)  |
+      ((uint32_t)(g_arm_gate_ok?1:0) << 6) |
+      ((uint32_t)Flight_mode       <<  7)  |
+      ((uint32_t)(Ftc_mode?1:0)    << 10)  |
+      ((uint32_t)Bench_mode        << 11)  |
+      ((uint32_t)(Failsafe_flag?1:0) << 14)|
+      ((uint32_t)Failsafe_cause    << 15)  |
+      ((uint32_t)(OverG_flag?1:0)  << 18)  |
+      ((uint32_t)g_dbg_led_branch  << 19)  |
+      ((uint32_t)g_dbg_out_path    << 23)  |
+      ((uint32_t)(Logoutputflag?1:0) << 26)|
+      ((uint32_t)g_dbg_lock_state  << 27)  |
+      ((uint32_t)g_dbg_dump_state  << 28) |
+      ((uint32_t)(g_dbg_gate_why==4?1:0) << 29);
+
+  const uint32_t now = time_us_32();
+  if (key == last_key && (uint32_t)(now - last_us) < 200000u)
+    return;
+  last_key = key;
+  last_us  = now;
+
+  const uint32_t gate_ms = g_arm_gate_ok
+                           ? g_arm_gate_wait_ms
+                           : (uint32_t)(now - g_arm_gate_t0) / 1000u;
+
+  printf("#dbg,%lu,arm=%u,lock=%u,gate=%u,ghold=%u,gwait=%lu,gwhy=%u,"
+         "fm=%u,ftc=%u,relax=%u,bench=%u,fs=%u/%u,og=%u,"
+         "led=%u,out=%u,logout=%u,nhold=%u,lk=%u:%u,dm=%u:%u,"
+         "Tref=%.3f,cd=%.3f,duty=%.3f/%.3f/%.3f/%.3f/%.3f/%.3f,"
+         "ch=%u/%u/%u/%u/%u/%u/%u,rx=%u,drift=%.2f/%.2f\r\n",
+         (unsigned long)(now / 1000u),
+         (unsigned)Arm_flag, (unsigned)LockMode,
+         (unsigned)g_arm_gate_ok, (unsigned)g_arm_gate_hold,
+         (unsigned long)gate_ms, (unsigned)g_dbg_gate_why,
+         (unsigned)Flight_mode, (unsigned)Ftc_mode, (unsigned)Relax_enable,
+         (unsigned)Bench_mode,
+         (unsigned)Failsafe_flag, (unsigned)Failsafe_cause, (unsigned)OverG_flag,
+         (unsigned)g_dbg_led_branch, (unsigned)g_dbg_out_path,
+         (unsigned)Logoutputflag, (unsigned)g_stick_neutral_hold,
+         (unsigned)g_dbg_lock_chatta, (unsigned)g_dbg_lock_state,
+         (unsigned)g_dbg_dump_chatta, (unsigned)g_dbg_dump_state,
+         (double)T_ref, (double)(T_ref * T_ref_coe),
+         (double)FR_duty, (double)FL_duty, (double)MR_duty,
+         (double)ML_duty, (double)RR_duty, (double)RL_duty,
+         (unsigned)Chdata[2], (unsigned)Chdata[0], (unsigned)Chdata[1],
+         (unsigned)Chdata[3], (unsigned)Chdata[LOG], (unsigned)Chdata[FTC],
+         (unsigned)Chdata[SERVO],
+         (unsigned)Rx_framelost_run,
+         (double)(Ekf_drift_phi   * 180.0f / (float)M_PI),
+         (double)(Ekf_drift_theta * 180.0f / (float)M_PI));
+#endif
 }
 
 void debug_print_gyro(void)
@@ -3468,13 +3830,17 @@ void kalman_filter(void)
 //   return m_out;
 // }
 
+// ⚠ 2026-09-16: この関数はどこからも呼ばれておらず、廃止した LINETRACE を参照していて
+//    ビルドを壊すので #if 0 で落とした。復活させるならチャンネル判定から作り直すこと。
+#if 0
 void unique_mission(){
   //もし0.4sで宙返りができるなら
 float P_max=20*pi ;
 float P_angle=50*pi ;
 uint16_t flip_s;
 float q_rate;
-if((Chdata[SERVO] < 200) && (Chdata[LOG] < 200) && (Chdata[LINETRACE] < 200) && (Chdata[HOVERING] < 200)){
+// ⚠ この関数はどこからも呼ばれていない。LOG のしきい値だけ logging() と流儀を揃えてある。
+if((Chdata[SERVO] < 200) && (Chdata[LOG] < (CH5MAX + CH5MIN) / 2) && (Chdata[LINETRACE] < 200) && (Chdata[HOVERING] < 200)){
   if(0<=flip_s && flip_s<80)
   {
     T_ref=0.5;
@@ -3488,5 +3854,6 @@ if((Chdata[SERVO] < 200) && (Chdata[LOG] < 200) && (Chdata[LINETRACE] < 200) && 
   flip_s ++;
   }
 }
+#endif   // unique_mission（未使用・LINETRACE 依存のため無効化）
   
 

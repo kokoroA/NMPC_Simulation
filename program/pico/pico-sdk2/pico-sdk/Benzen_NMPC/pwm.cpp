@@ -195,3 +195,8 @@ void payload_relese(void)
     pwm_set_chan_level(Slice_num_servo, PWM_CHAN_A, SERVO_RELEASE);
     // printf("release\n");
 }
+void payload_half(void)
+{
+    pwm_set_chan_level(Slice_num_servo, PWM_CHAN_A, SERVO_HALF);
+    // printf("release\n");
+}

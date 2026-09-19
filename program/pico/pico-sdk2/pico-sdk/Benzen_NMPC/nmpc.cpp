@@ -162,12 +162,21 @@ void nonlinear_rollout(const StateVec &x0,
 bool llt_is_healthy(const Eigen::LLT<HMat, Eigen::Lower> &llt);
 
 // M = Su_w^T * Su_w を BSS 上の M に直接書き込む (rankUpdate / Eigen GEMM のスタック消費を回避)
+// ---- 2026-09-19: Su のブロック下三角構造を使う ----
+// full_rebuild_sx_su() は Su.setZero() のあと j <= k のブロックにしか書かないので、
+// **入力 i が属する段 ki = i/NU より前の行（k < ki*NX）は厳密にゼロ**。
+// j <= i なら kj <= ki なので、内側ループは k = ki*NX から始めてよい。
+//   積和回数 249,900 -> 92,925 (-62.8%)。**足していた項が厳密に 0 なので結果はビット単位で同一。**
+// ⚠ この関数は full_rebuild_chol() からしか呼ばれず、その直前に必ず full_rebuild_sx_su() が
+//   走るので、Su は常にブロック下三角。**TR1 のランク 1 更新後の Su に対して呼ばないこと**
+//   （TR1 は上側ブロックを埋めうるため、この最適化が成立しなくなる）。
 void build_hessian_from_su_w(const SuMat &Su_w, HMat &M)
 {
     for (int i = 0; i < mpc::NU_TOTAL; ++i) {
+        const int k0 = (i / mpc::NU) * mpc::NX;   // これより前の行は Su_w が厳密に 0
         for (int j = 0; j <= i; ++j) {
             float sum = 0.0f;
-            for (int k = 0; k < mpc::NX_TOTAL; ++k) {
+            for (int k = k0; k < mpc::NX_TOTAL; ++k) {
                 sum += Su_w(k, i) * Su_w(k, j);
             }
             M(i, j) = sum;
@@ -259,7 +268,10 @@ bool tr1_update_sx_su(NmpcContext &ctx,
     ctx.scratch.tr1_s_u = U_lin_now - ctx.U_lin_prev;
 
     const float norm_sq = s_x.squaredNorm() + ctx.scratch.tr1_s_u.squaredNorm();
+    ctx.diag.last_secant_norm_sq = norm_sq;          // debug (2026-09-19)
     if (norm_sq < rti::secant_min_norm * rti::secant_min_norm) {
+        ctx.diag.last_tr1_c = 0.0f;                  // c は計算していない
+        ctx.diag.last_tr1_skip_run = ctx.tr1_skip_run;
         return false;
     }
 
@@ -282,6 +294,7 @@ bool tr1_update_sx_su(NmpcContext &ctx,
     {
         const CostDiag &cd = cost_diag();
         const float c = ctx.scratch.tr1_u_rk1.dot(cd.qbar.cwiseProduct(ctx.scratch.tr1_u_rk1));
+        ctx.diag.last_tr1_c = c;                     // debug (2026-09-19)
         if (!(fabsf(c) <= rti::tr1_c_max)) {   // NaN も捕まえる
             ctx.diag.cnt_reset_sr2_bad_c++;   // 名前は歴史的経緯。「大きすぎて捨てた回数」を数える
             // 捨て続けると Su/Sx が古いまま状態だけ進み、残差が大きいので更に捨てる、という
@@ -291,10 +304,14 @@ bool tr1_update_sx_su(NmpcContext &ctx,
                 ctx.tr1_skip_run = 0;
                 ctx.need_full_rebuild = true;
                 ctx.rebuild_cause_pending = NMPC_REBUILD_SR2_BAD_C;
+                ctx.diag.last_tr1_skip_run = rti::tr1_skip_max_run;  // 到達した回数を残す
+            } else {
+                ctx.diag.last_tr1_skip_run = ctx.tr1_skip_run;
             }
             return false;
         }
         ctx.tr1_skip_run = 0;
+        ctx.diag.last_tr1_skip_run = 0;
     }
 
     ctx.Sx.noalias() += ctx.scratch.tr1_u_rk1 * s_x.transpose();
@@ -476,6 +493,10 @@ int admm_solve(NmpcContext &ctx, float u_hover, const UStackVec &U_ref)
         ctx.diag.cnt_nonfinite++;
     }
 
+    // ---- 2026-09-19: ここまでの解を「実際に出す値」として確定させる ----
+    // 安全弁 1(lambda) と 2(非有限) は出力にも効かせる。安全弁 3 は効かせない。
+    ctx.scratch.z_applied = ctx.ws.z;
+
     // ---- 安全弁 3: 線形化点 |U_lin| の暴走を止める ----
     // ws.z は次周期の U_lin（線形化点）になる。ここが育つと Su/Hessian が現実から離れ、
     // box が有効化 → lambda 成長 → duty が両端に張り付く、という順で必ず落ちる。
@@ -498,7 +519,17 @@ int admm_solve(NmpcContext &ctx, float u_hover, const UStackVec &U_ref)
     // 健全時は U_ref = 0 なので式は旧実装と**完全に一致**する。v12 墜落の検出能力
     //（t=19.78 発火、q の跳ねの 0.08 s 前）はそのまま保たれる。
     // 根拠: docs/ai/decisions/20260915_ulin_guard_misfires_under_ftc.md
-    if (!((ctx.ws.z - U_ref).squaredNorm() < rti::ulin_max * rti::ulin_max)) {
+    //
+    // ---- 2026-09-19: (a) しきい値を box 相対に (b) 出力は捨てない ----
+    // ws.z は box へ射影済みなので |ws.z| の上限は sqrt(NU_TOTAL)*half_span で決まる。
+    // 固定 1.0 はその 27% しかなく、正常な大操作で発火していた。
+    // 発火してもこの周期の duty は z_applied（上でコピー済み）を使うので影響しない。
+    // 根拠: docs/ai/decisions/20260919_payload_drop_crash_ulin_guard_zeroes_du.md
+    const float ulin_half_span =
+        (u_hover > (mpc::U_duty_max - u_hover)) ? u_hover : (mpc::U_duty_max - u_hover);
+    float ulin_lim = rti::ulin_box_frac * sqrtf((float)mpc::NU_TOTAL) * ulin_half_span;
+    if (ulin_lim < rti::ulin_min_abs) ulin_lim = rti::ulin_min_abs;
+    if (!((ctx.ws.z - U_ref).squaredNorm() < ulin_lim * ulin_lim)) {
         if (++ctx.ulin_hot_run >= rti::ulin_max_run) {
             ctx.ulin_hot_run = 0;
             // ---- 2026-09-15: フル再構築を**要求しない**（案 A）----
@@ -767,14 +798,16 @@ void nmpc_step(NmpcContext &ctx,
     for (int j = 0; j < mpc::NU; ++j) {
         const float lo = ctx.scratch.du_min(j);
         const float hi = ctx.scratch.du_max(j);
-        float v = ctx.ws.z(j);
+        // ⚠ ws.z ではなく z_applied。安全弁 3 が ws.z を U_ref へ戻していても、
+        //    この周期の制御出力は捨てない（2026-09-19）。
+        float v = ctx.scratch.z_applied(j);
         if (v < lo) v = lo;
         if (v > hi) v = hi;
         U_opt(j) = v;
     }
 
 #if NMPC_BENCH_COST
-    cost_out = evaluate_cost(ctx, x0, X_ref, U_ref, ctx.ws.z);
+    cost_out = evaluate_cost(ctx, x0, X_ref, U_ref, ctx.scratch.z_applied);
     ctx.last_cost = cost_out;
 #else
     cost_out = 0.0f;
