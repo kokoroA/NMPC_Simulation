@@ -7,7 +7,9 @@
 シリアルモニタの出力をそのまま保存したファイルでよい（`#` 行は読み飛ばす）。
 列は control.cpp の log_output() が出す `#cols:` 行と同じ:
     t,phi,theta,p,q,r,phi_ref,theta_ref,psi_ref,T_ref,u_base,
-    u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,iter_us,loop_us,cycles,failsafe,ftc,acc_norm
+    u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,iter_us,loop_us,cycles,failsafe,ftc,acc_norm,
+    ekf_bp,ekf_bq,ekf_br,ekf_dphi,ekf_dtheta,lam_norm,ulin_norm,solver_code,
+    tr1_c,secant_nsq,tr1_skip_run,a_hat_norm
 """
 import sys, os, csv
 import numpy as np
@@ -21,7 +23,9 @@ for _f in ('Hiragino Sans', 'AppleGothic', 'Noto Sans CJK JP'):
         break
 
 COLS = ("t,phi,theta,p,q,r,phi_ref,theta_ref,psi_ref,T_ref,u_base,"
-        "u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,iter_us,loop_us,cycles,failsafe,ftc,acc_norm").split(',')
+        "u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,iter_us,loop_us,cycles,failsafe,ftc,acc_norm,"
+        "ekf_bp,ekf_bq,ekf_br,ekf_dphi,ekf_dtheta,lam_norm,ulin_norm,solver_code,"
+        "tr1_c,secant_nsq,tr1_skip_run,a_hat_norm").split(',')
 FS_NAME = {0: 'none', 1: 'rx_lost(旧)', 2: 'rx_timeout', 3: 'attitude', 4: 'rate', 5: 'overg',
            6: 'rx_failsafe(0x08)', 7: 'rx_framelost(0x04連続)'}
 

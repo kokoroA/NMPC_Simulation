@@ -8,7 +8,8 @@
 // ver 4: NmpcTelPkt に ftc / failsafe を追加 (旧 _pad + 1 バイト)
 // ver 5: 末尾に rx_flags / rx_framelost_run / rx_framelost_cnt を追加 (188 -> 196 バイト)。
 //        既存フィールドのオフセットは変えていない。
-#define NMPC_UDP_VER        5u
+// ver 6: 最終 PWM duty から伝播した a_hat_p/q/r を追加 (196 -> 208 バイト)。
+#define NMPC_UDP_VER        6u
 #define NMPC_PORT_CMD       5000u
 #define NMPC_PORT_TEL       5001u
 
@@ -94,6 +95,9 @@ struct NmpcTelPkt {
     float u_ml;
     float u_rr;
     float u_rl;
+    float a_hat_p;
+    float a_hat_q;
+    float a_hat_r;
     float d_fr;
     float d_fl;
     float d_mr;
@@ -117,7 +121,7 @@ struct NmpcTelPkt {
 };
 #pragma pack(pop)
 
-static_assert(sizeof(NmpcTelPkt) == 196, "NmpcTelPkt は 196 バイト (tools/nmpc_udp_client.py の TEL_FMT と一致させること)");
+static_assert(sizeof(NmpcTelPkt) == 208, "NmpcTelPkt は 208 バイト (tools/nmpc_udp_client.py の TEL_FMT と一致させること)");
 
 int wifi_telemetry_init(void);
 bool wifi_telemetry_ready(void);

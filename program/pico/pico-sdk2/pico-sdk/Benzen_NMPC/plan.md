@@ -1,5 +1,11 @@
 # 実機 Pico 2 W / Hexa-X 姿勢 NMPC 化 実装計画
 
+> **2026-09-20 更新**: 本文は初回6発移植時の履歴であり、`N=20/NX=5` 等は古い。
+> 現行の正は `nmpc_params.hpp` の **NX=8 / N=12 / NU=6 / tau_act=45 ms / DC0**。
+> 状態は `[phi,theta,p,q,r,a_p,a_q,a_r]`、末尾3状態は最終PWM dutyから400 Hzで伝播する。
+> 詳細と検証基準は `docs/20260920_nx8_n12_actuator_lag_implementation_plan.md` を参照。
+> ホストモデル検証とクロスビルド後であり、Pico実測時間・通電・飛行は未検証。
+
 対象: Raspberry Pi Pico 2 W で動作する Hexa-X ヘキサコプタのフライトコントローラ
 目的: 姿勢制御を PID から NMPC へ置き換える(高度制御は PID/スティックのまま)
 参照実装: `../../../../NMPC_simulation/nmpc_simulation.py`(Hexa-X 6発、実証済み)

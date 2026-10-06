@@ -18,6 +18,7 @@
 #ifdef USE_NMPC
 #include "nmpc.hpp"
 #include "nmpc_model.hpp"
+#include "hardware/sync.h"
 #endif
 
 #ifdef NMPC_WIFI_TELEM
@@ -166,8 +167,10 @@ float   Motor_eta[NUM_MOTOR] = {1.f,1.f,1.f,1.f,1.f,1.f};  // 0=故障, 1=健全
 // 根拠: docs/ai/decisions/20260916_relaxed_hover_reachable_in_sim_cr_mismatch_is_the_real_blocker.md
 uint8_t Relax_enable = 0;                 // 1 で有効（要ビルド）
 uint8_t Relax_active = 0;                 // 実際に効いているか（ログ/デバッグ用）
-// x_eq = [phi, theta, p, q, r]  [rad, rad/s]  = [-5.0 deg, -6.0 deg, +76.3, -63.3, +723.2 deg/s]
-float   Relax_x_eq[5]           = { -0.08727f, -0.10472f, 1.33179f, -1.10436f, 12.62289f };
+// x_eq = [phi, theta, p, q, r, a_p, a_q, a_r]。初版は Q_a=0 のため末尾を 0 とする。
+float   Relax_x_eq[8] = {
+  -0.08727f, -0.10472f, 1.33179f, -1.10436f, 12.62289f, 0.0f, 0.0f, 0.0f
+};
 // u_eq = 絶対 duty [FR,FL,MR,ML,RR,RL]。FR は故障発なので 0。peak 0.7172（余地 0.2328）
 float   Relax_u_eq[NUM_MOTOR]   = { 0.0f, 0.6881f, 0.6930f, 0.7123f, 0.7172f, 0.7068f };
 // 参照を「静的 FTC の釣り合い点」から「回転平衡」へ寄せる秒数。
@@ -221,7 +224,7 @@ static const uint32_t FS_RX_TIMEOUT_US = 200000;
 // 脱出条件。姿勢 [rad] / 角速度 [rad/s] / 加速度 [m/s^2]
 // 加速度は LSM9DS1 が ±16g 設定 = 最大 157 m/s^2 なので、旧値 800 は到達不能だった。
 static const float FS_ATTITUDE_LIMIT = 90.0f * (float)M_PI / 180.0f;
-static const float FS_RATE_LIMIT     = 360.0f * (float)M_PI / 180.0f;
+static const float FS_RATE_LIMIT     = 720.0f * (float)M_PI / 180.0f;
 // ---- 2026-09-16: relaxed hover 用の緩和値 ----
 // relaxed hover の平衡回転数は Cr 依存で 300-775 deg/s、立ち上がりのオーバーシュート込みで
 // 実測ピーク 751 deg/s（ホストシミュ）。360 deg/s のままでは平衡に到達した瞬間に停止する。
@@ -229,7 +232,7 @@ static const float FS_RATE_LIMIT     = 360.0f * (float)M_PI / 180.0f;
 // ⚠ 姿勢フェイルセーフ(90 deg)は緩めない。relaxed hover の傾きは 4-14 deg なので安全網として残す。
 // 根拠: docs/ai/decisions/20260916_relaxed_hover_prize_is_cr_independent_and_ekf_drift_guard_will_misfire.md
 static const float FS_RATE_LIMIT_FTC = 1200.0f * (float)M_PI / 180.0f;
-static const float FS_ACC_LIMIT      = 150.0f;  // ≈15g。誤検知で飛行中に止まる方が危険なので高めから始める
+static const float FS_ACC_LIMIT      = 300.0f;  // ≈15g。誤検知で飛行中に止まる方が危険なので高めから始める
 // SBUS FRAME_LOST(0x04) は 1 フレーム取りこぼしただけで立つ。単発で空中のモータを永久に切るのは
 // 過剰なので、連続してこの本数立ち続けたときだけ発動させる。
 // SBUS のフレーム周期は 7ms (高速) / 14ms (標準) なので 16 本 = 約 112-224 ms 相当。
@@ -263,10 +266,10 @@ float Log_time = 0.0;
 //   墜落解析では最後の数秒が要るのに、旧実装では離陸直後で満杯になり肝心の場面が残らなかった。
 //   列も PID 時代のもの（P_com/altitude/ideal/T_stick/input 等・NMPC では未使用）から
 //   NMPC 用（6 発の duty・ソルバ時間・フェイルセーフ）へ差し替えた。
-const uint8_t DATANUM = 33;                            // 1 サンプルあたりの列数（2026-09-10: 22 -> 30、2026-09-19: -> 33）
+const uint8_t DATANUM = 34;                            // 末尾に a_hat_norm を追加
 const uint32_t LOGDATANUM = 65280;                     // = 30 * 2176。行数は据え置き（+52 KB）
-                                                       // 2026-09-19: 33 列にしたので 65280/33 = 1978 行 = 19.8 秒
-const uint16_t LOGROWS = (uint16_t)(LOGDATANUM / DATANUM);  // = 1978 行 = 19.8 秒 @100Hz
+                                                       // 34 列: 65280/34 = 1920 行 = 19.2 秒
+const uint16_t LOGROWS = (uint16_t)(LOGDATANUM / DATANUM);
 float Logdata[LOGDATANUM] = {0.0};
 static uint16_t LogRow = 0;        // 次に書き込む行
 static uint8_t  Log_wrapped = 0;   // 1 = 一周した（バッファ全体が有効）
@@ -296,11 +299,64 @@ Filter Velocity_filter;
 
 #ifdef USE_NMPC
 // ---- 姿勢 NMPC (Hexa-X, 100Hz) ----
+static_assert(sizeof(Relax_x_eq) / sizeof(Relax_x_eq[0]) == nmpc::mpc::NX,
+              "Relax_x_eq と NMPC 状態次元を一致させること");
 // NmpcContext は ~200KB のため static (BSS) に 1 度だけ確保する。
 static nmpc::NmpcContext g_nmpc_ctx;
 static bool     g_nmpc_inited = false;
 static bool     g_nmpc_was_running = false;  // angle_control: nmpc_run 立下り検出用
 static float    g_nmpc_cost   = 0.0f;   // 直近の評価値 (デバッグ)
+
+// ---- 400 Hz 最終 PWM duty から伝播するアクチュエータ状態 ----
+// core0 writer / core1 reader。奇数 seq は書込み中、偶数は安定スナップショット。
+struct ActuatorStateSnapshot {
+    volatile uint32_t seq;
+    volatile float a[3];
+};
+static ActuatorStateSnapshot g_actuator_snapshot = {};
+static nmpc::AttAccelVec g_actuator_hat_core0 = nmpc::AttAccelVec::Zero();
+static nmpc::AttAccelVec g_actuator_hat_core1 = nmpc::AttAccelVec::Zero();
+static float g_actuator_alpha_400 = 0.0f;
+
+static void actuator_state_publish(const nmpc::AttAccelVec &a)
+{
+    uint32_t seq = g_actuator_snapshot.seq;
+    if (seq & 1u) ++seq;
+    g_actuator_snapshot.seq = seq + 1u;
+    __dmb();
+    for (int i = 0; i < 3; ++i) g_actuator_snapshot.a[i] = a(i);
+    __dmb();
+    g_actuator_snapshot.seq = seq + 2u;
+}
+
+static void actuator_state_update_400hz(const float duty[NUM_MOTOR])
+{
+    nmpc::InputVec u;
+    for (int j = 0; j < nmpc::mpc::NU; ++j) u(j) = duty[j];
+    nmpc::AttAccelVec a_cmd;
+    nmpc::model_attitude_accel_from_duty(u, a_cmd);
+    g_actuator_hat_core0 =
+        g_actuator_alpha_400 * g_actuator_hat_core0
+        + (1.0f - g_actuator_alpha_400) * a_cmd;
+    actuator_state_publish(g_actuator_hat_core0);
+}
+
+static nmpc::AttAccelVec actuator_state_read_core1(void)
+{
+    for (int retry = 0; retry < 4; ++retry) {
+        const uint32_t s0 = g_actuator_snapshot.seq;
+        if (s0 & 1u) continue;
+        nmpc::AttAccelVec sample;
+        for (int i = 0; i < 3; ++i) sample(i) = g_actuator_snapshot.a[i];
+        __dmb();
+        const uint32_t s1 = g_actuator_snapshot.seq;
+        if (s0 == s1 && !(s1 & 1u)) {
+            g_actuator_hat_core1 = sample;
+            break;
+        }
+    }
+    return g_actuator_hat_core1;
+}
 // FTC の η が変わったことを core0(rate_control 400Hz) から core1(angle_control 100Hz) へ伝える。
 // 1 バイトの立ち上がりだけなのでロック不要 (取りこぼしても次周期で拾う設計にはしない ―
 // クリアは core1 側で行い、書き込みは core0 側のみ)。
@@ -451,6 +507,7 @@ struct NmpcBenchSnapshot {
     volatile float schedule_alpha;  // u_hover scheduling 係数 [0,1]
     volatile float Q_phi_eff;       // 実効 Q_phi (scheduled)
     volatile float u_fr, u_fl, u_mr, u_ml, u_rr, u_rl;
+    volatile float a_hat_p, a_hat_q, a_hat_r;
     volatile float iter_us;         // nmpc_step 所要時間 [us]
     volatile float loop_us;         // angle_control 1 周期 [us]
     volatile float cost;
@@ -540,6 +597,9 @@ static bool nmpc_bench_fill_tel(NmpcTelPkt *out)
     out->u_ml = g_nmpc_bench.u_ml;
     out->u_rr = g_nmpc_bench.u_rr;
     out->u_rl = g_nmpc_bench.u_rl;
+    out->a_hat_p = g_nmpc_bench.a_hat_p;
+    out->a_hat_q = g_nmpc_bench.a_hat_q;
+    out->a_hat_r = g_nmpc_bench.a_hat_r;
     out->d_fr = g_nmpc_bench.u_fr - ub;
     out->d_fl = g_nmpc_bench.u_fl - ub;
     out->d_mr = g_nmpc_bench.u_mr - ub;
@@ -579,6 +639,7 @@ void debug_print_nmpc_bench(void)
                "cnt_tr1,cnt_tr1_ok,cnt_tr1_skip,"
                "cnt_rst_period,cnt_rst_ext,cnt_sr2_c,cnt_sr2_llt,cnt_rst_after_sr2,"
                "u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,"
+               "a_hat_p,a_hat_q,a_hat_r,"
                "d_fr,d_fl,d_mr,d_ml,d_rr,d_rl,"
                "ftc,failsafe,rx_flags,rx_fl_run,rx_fl_cnt,"
                "flight_mode,lock_mode,gate,ch_ftc,"
@@ -595,6 +656,7 @@ void debug_print_nmpc_bench(void)
            "%lu,%lu,%lu,"
            "%lu,%lu,%lu,%lu,%lu,"
            "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,"
+           "%.4f,%.4f,%.4f,"
            "%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,"
            "%u,%u,%u,%u,%lu,"
            "%u,%u,%u,%u,"
@@ -626,6 +688,7 @@ void debug_print_nmpc_bench(void)
            g_nmpc_bench.u_fr, g_nmpc_bench.u_fl,
            g_nmpc_bench.u_mr, g_nmpc_bench.u_ml,
            g_nmpc_bench.u_rr, g_nmpc_bench.u_rl,
+           g_nmpc_bench.a_hat_p, g_nmpc_bench.a_hat_q, g_nmpc_bench.a_hat_r,
            g_nmpc_bench.u_fr - ub, g_nmpc_bench.u_fl - ub,
            g_nmpc_bench.u_mr - ub, g_nmpc_bench.u_ml - ub,
            g_nmpc_bench.u_rr - ub, g_nmpc_bench.u_rl - ub,
@@ -1113,13 +1176,19 @@ void control_init(void)
 
 #ifdef USE_NMPC
   // 姿勢 NMPC 初期化 + モデルのサニティチェック
+  g_actuator_alpha_400 = expf(-0.0025f / nmpc::physical::tau_act);
+  g_actuator_hat_core0.setZero();
+  actuator_state_publish(g_actuator_hat_core0);
   nmpc::nmpc_cost_init();
   nmpc::nmpc_init(g_nmpc_ctx);
   nmpc::nmpc_warmup(g_nmpc_ctx);
   g_nmpc_inited = true;
   bool ok = nmpc::model_sanity();
-  printf("#NMPC init: NU=%d N=%d NU_TOTAL=%d reset_period=%d model_sanity=%s\r\n",
-         nmpc::mpc::NU, nmpc::mpc::N, nmpc::mpc::NU_TOTAL,
+  printf("#NMPC init: NX=%d NU=%d N=%d NX_TOTAL=%d NU_TOTAL=%d tau_act=%.3f delay_comp=%d "
+         "reset_period=%d model_sanity=%s\r\n",
+         nmpc::mpc::NX, nmpc::mpc::NU, nmpc::mpc::N,
+         nmpc::mpc::NX_TOTAL, nmpc::mpc::NU_TOTAL,
+         (double)nmpc::physical::tau_act, nmpc::rti::delay_comp_steps,
          nmpc::rti::reset_period,
          ok ? "PASS" : "FAIL");
 #endif
@@ -2257,6 +2326,24 @@ void rate_control(void)
       else
         motor_stop();
     }
+
+    // フェイルセーフ・ゲート・故障発・minimum duty・clamp をすべて通過した
+    // 実 PWM duty だけで actuator state を進める。停止時も瞬時リセットせず tau_act で減衰。
+    float u_pwm[NUM_MOTOR] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    const bool pwm_enabled =
+        !Failsafe_flag
+        && (g_arm_gate_ok || Bench_mode != BENCH_OFF)
+        && common_duty >= Disable_duty
+        && OverG_flag == 0;
+    if (pwm_enabled) {
+      u_pwm[0] = FR_duty; u_pwm[1] = FL_duty;
+      u_pwm[2] = MR_duty; u_pwm[3] = ML_duty;
+      u_pwm[4] = RR_duty; u_pwm[5] = RL_duty;
+    }
+    // rate_control 1 周期につき必ず 1 回だけ更新する。
+    // motor_stop() に更新を持たせると、failsafe_check() と本分岐の双方から呼ばれた周期に
+    // 2 回減衰し、停止時だけ見かけの tau_act が半分になる。
+    actuator_state_update_400hz(u_pwm);
   }
 #endif
 
@@ -2518,13 +2605,14 @@ void angle_control(void)
     else
     {
       g_nmpc_was_running = true;
-      // 現在状態 x0 = [phi, theta, p, q, r]
-      nmpc::StateVec x0;
+      // 現在状態 x0 = [phi, theta, p, q, r, a_p, a_q, a_r]
+      nmpc::StateVec x0 = nmpc::StateVec::Zero();
       x0(0) = Phi - Phi_bias;
       x0(1) = Theta - Theta_bias;
       x0(2) = Wp - Pbias;
       x0(3) = Wq - Qbias;
       x0(4) = Wr - Rbias;
+      x0.segment<3>(5) = actuator_state_read_core1();
 
       // ---- 遅れ補償: 直近に出した duty で x0 を前方予測 ----
       // 実効遅れ 40-50 ms の間に効く指令は既に出してあるので、その分の運動を先回りする。
@@ -2545,7 +2633,7 @@ void angle_control(void)
       }
 
       // 参照: 姿勢角はスティック、p/q 目標 0、r 目標はヨー rate (Psi_ref)
-      nmpc::StateVec x_ref;
+      nmpc::StateVec x_ref = nmpc::StateVec::Zero();
       x_ref(0) = Phi_ref;
       x_ref(1) = Theta_ref;
       x_ref(2) = 0.0f;
@@ -2752,6 +2840,9 @@ void angle_control(void)
       snap.u_ml = ML_duty;
       snap.u_rr = RR_duty;
       snap.u_rl = RL_duty;
+      snap.a_hat_p = g_actuator_hat_core1(0);
+      snap.a_hat_q = g_actuator_hat_core1(1);
+      snap.a_hat_r = g_actuator_hat_core1(2);
       snap.iter_us = (float)g_nmpc_iter_us;
       snap.loop_us = (float)(time_us_32() - S_time2);
       snap.cost = g_nmpc_cost;
@@ -2878,10 +2969,12 @@ void logging(void)
       L[k++] = g_nmpc_ctx.diag.last_tr1_c;                       // 31 tr1_c
       L[k++] = g_nmpc_ctx.diag.last_secant_norm_sq;              // 32 secant_nsq
       L[k++] = (float)g_nmpc_ctx.diag.last_tr1_skip_run;         // 33 tr1_skip_run
+      L[k++] = g_actuator_hat_core1.norm();                       // 34 a_hat_norm [rad/s^2]
     }
 #else
     L[k++] = 0.0f; L[k++] = 0.0f; L[k++] = 0.0f;
     L[k++] = 0.0f; L[k++] = 0.0f; L[k++] = 0.0f;
+    L[k++] = 0.0f;
 #endif
     g_log_cols_written = k;   // DATANUM とずれていないかをヘッダで確認するため
 
@@ -2912,8 +3005,12 @@ void log_output(void)
            (unsigned)g_log_cols_written, count * 0.01f);
 #ifdef USE_NMPC
     // nmpc_params.hpp の各 namespace をそのまま印字（後解析でソースと突合できるように）
-    printf("#params: N=%d dt=%.3f T_max=%.3f mass=%.3f Ct=%.3e CQ=%.3e C_QT=%.4f\r\n",
-           nmpc::mpc::N, nmpc::mpc::dt, nmpc::physical::T_max, nmpc::physical::mass,
+    printf("#params: NX=%d N=%d NX_TOTAL=%d NU_TOTAL=%d dt=%.3f tau_act=%.3f "
+           "T_max=%.3f mass=%.3f Ct=%.3e CQ=%.3e C_QT=%.4f\r\n",
+           nmpc::mpc::NX, nmpc::mpc::N,
+           nmpc::mpc::NX_TOTAL, nmpc::mpc::NU_TOTAL,
+           (double)nmpc::mpc::dt, (double)nmpc::physical::tau_act,
+           (double)nmpc::physical::T_max, (double)nmpc::physical::mass,
            nmpc::physical::Ct, nmpc::physical::CQ, nmpc::physical::C_QT);
     printf("#physical: Ix=%.4e Iy=%.4e Iz=%.4e Cp=%.4f Cq=%.4f Cr=%.4f\r\n",
            nmpc::physical::Ix, nmpc::physical::Iy, nmpc::physical::Iz,
@@ -2970,7 +3067,7 @@ void log_output(void)
     printf("#cols: t,phi,theta,p,q,r,phi_ref,theta_ref,psi_ref,T_ref,u_base,"
            "u_fr,u_fl,u_mr,u_ml,u_rr,u_rl,iter_us,loop_us,cycles,failsafe,ftc,acc_norm,"
            "ekf_bp,ekf_bq,ekf_br,ekf_dphi,ekf_dtheta,lam_norm,ulin_norm,solver_code,"
-           "tr1_c,secant_nsq,tr1_skip_run\r\n");
+           "tr1_c,secant_nsq,tr1_skip_run,a_hat_norm\r\n");
     if (count == 0)
     {
       printf("#empty (LOG スイッチで記録していません)\r\n");

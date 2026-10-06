@@ -77,21 +77,25 @@ namespace physical {
     // ※暫定値：実機ホバー測定後に T_hover_per_motor / hover_duty で更新推奨
     //constexpr float T_max = 2.04f;
     constexpr float T_max = 0.75f;//0.81 1.04
+
+    // モータ・ESC・プロペラ系の姿勢軸一次遅れ [s]。
+    // 閉ループ飛行ログから点同定できた値ではなく、35--60 ms の検証範囲の暫定中心値。
+    constexpr float tau_act = 0.045f;
 }
 
 // =========================================================================
 // 2. NMPC ハイパーパラメータ
 // =========================================================================
 namespace mpc {
-    constexpr int   N    = 14;             // 予測ホライズン
+    constexpr int   N    = 12;             // NX=8 の計算予算確保
     constexpr float dt   = 0.01f;          // サンプリング [s] (100Hz)
 
-    constexpr int   NX   = 5;              // 状態次元 [phi, theta, p, q, r]
+    constexpr int   NX   = 8;              // [phi, theta, p, q, r, a_p, a_q, a_r]
     constexpr int   NU   = 6;              // 入力次元 [u_fr, u_fl, u_mr, u_ml, u_rr, u_rl]
 
     // 予測軌跡サイズ
-    constexpr int   NX_TOTAL = NX * N;     // = 100
-    constexpr int   NU_TOTAL = NU * N;     // = 120
+    constexpr int   NX_TOTAL = NX * N;     // = 96
+    constexpr int   NU_TOTAL = NU * N;     // = 72
 
     // モータ duty 上限 [0,1]。実機 ESC / control.cpp mix_duty と一致。
     // ADMM Box 射影: Δu ∈ [-u_hover, U_duty_max - u_hover]
@@ -257,7 +261,8 @@ namespace rti {
     // 追従の強さ（静的剛性）をほぼ落とさずに外乱時の振れが 1/6 になる。
     // ⚠ 同定した実効遅れは 40-50 ms なので 60 ms は**過補償側**。次の飛行で
     //   `#delay_comp: pred_nonfinite=` と 1-3 Hz 帯の占有率を必ず確認すること。
-    constexpr int   delay_comp_steps = 6;   // 旧 4
+    // 一次遅れ状態と DC6 を重ねると二重補償になる。必要なら純遅延分 1--2 周期だけ別途評価する。
+    constexpr int   delay_comp_steps = 0;   // 旧 6
 #endif
 
     // SR2 ダンピング下限（Powell-style）

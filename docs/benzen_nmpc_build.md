@@ -3,7 +3,7 @@
 Raspberry Pi Pico 2 W（RP2350）向け NMPC ファームウェア `pico_copter` のビルドと書き込み。
 
 - 実装解説: `program/pico/pico-sdk2/pico-sdk/Benzen_NMPC/docs/NMPC_REPORT.md`
-- パラメータの正: `Benzen_NMPC/nmpc_params.hpp`（現行 `N = 17`）
+- パラメータの正: `Benzen_NMPC/nmpc_params.hpp`（現行 `NX = 8`, `N = 12`）
 - ホスト上の SIL ビルドは別物 → [`program/sil/USAGE.md`](../program/sil/USAGE.md)
 
 ---
@@ -110,6 +110,19 @@ PY
 | UF2 | 約 1.3 MB |
 
 bss 402,456 B は SIL 調査 `20260825_sil_m0_firmware_on_host.md` の 7/15 ELF と同じ桁。主因は `Logdata` と `g_nmpc_ctx`。
+
+上記は旧構成の履歴値。2026-09-20 の `NX=8,N=12` は Pico実機の
+`iter_us/loop_us` をまだ取得していないため、旧値を性能値として流用しない。
+
+2026-09-20 の `NX=8,N=12` freshクロスビルド:
+
+| | 値 |
+|---|---|
+| `arm-none-eabi-size` text | 691,344 B |
+| data | 0 B |
+| bss | **417,720 B** |
+
+クロスビルドと静的メモリは合格。100 Hz期限はPico上の`iter_us/loop_us`実測待ち。
 
 ---
 

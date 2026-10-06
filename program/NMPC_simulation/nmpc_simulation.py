@@ -54,6 +54,39 @@ if "MPLBACKEND" not in os.environ:
 import matplotlib.pyplot as plt
 
 
+def _configure_matplotlib_japanese_font() -> None:
+    """日本語ラベルの文字化けを防ぐフォント設定."""
+    import platform
+    from matplotlib import font_manager
+
+    if platform.system() == 'Darwin':
+        candidates = [
+            'Hiragino Sans',
+            'Hiragino Maru Gothic Pro',
+            'AppleGothic',
+            'Arial Unicode MS',
+        ]
+    elif platform.system() == 'Windows':
+        candidates = ['Yu Gothic', 'MS Gothic', 'Meiryo']
+    else:
+        candidates = [
+            'Noto Sans CJK JP',
+            'IPAPGothic',
+            'TakaoPGothic',
+            'DejaVu Sans',
+        ]
+
+    available = {f.name for f in font_manager.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            plt.rcParams['font.family'] = name
+            plt.rcParams['axes.unicode_minus'] = False
+            return
+
+
+_configure_matplotlib_japanese_font()
+
+
 # ---- プラント状態インデックス (12D: ψ を p,q,r の直後に挿入) ----------
 PI_PHI, PI_THETA = 0, 1
 PI_P, PI_Q, PI_R = 2, 3, 4
@@ -103,25 +136,33 @@ def _cholesky_lower(A: np.ndarray) -> np.ndarray:
 @dataclass
 class Params:
     # ---- physical ----
-    Ix: float = 6.10e-3
-    Iy: float = 6.53e-3
-    Iz: float = 1.16e-2
-    Cp: float = 0.01
+    Ix: float = 1.8e-3
+    Iy: float = 1.9e-3
+    Iz: float = 3.0e-3
+    Cp: float = 0.025
     Cq: float = 0.025
-    Cr: float = 0.005
-    arm_length: float = 0.050      # L [m]
-    mass: float = 0.200            # [kg]
+    Cr: float = 1.0e-4
+    arm_length: float = 0.050      # L [m] (参照用。B_c は下の motor_x/y から構成)
+    mass: float = 0.285            # [kg]
     gravity: float = 9.81
-    C_QT: float = 0.03614          # CQ / Ct [m]
-    T_max: float = 2.725           # 1モータ最大推力 [N]
+    C_QT: float = 1.54e-8 / 5.21e-7
+    T_max: float = 0.75
+    tau_act: float = 0.045
+
+    # ---- 機体幾何 (実機 Hexa-X の実測配置) ----
+    # M1 前右, M2 前左, M3 右横, M4 左横, M5 後右, M6 後左
+    # s_yaw: CW = -1, CCW = +1
+    motor_x: Tuple[float, ...] = (0.085, 0.085, 0.000, 0.000, -0.085, -0.085)
+    motor_y: Tuple[float, ...] = (0.050, -0.050, 0.100, -0.100, 0.050, -0.050)
+    motor_s: Tuple[float, ...] = (-1.0, +1.0, +1.0, -1.0, -1.0, +1.0)
 
     # ---- NMPC ----
-    N: int = 30
+    N: int = 12
     dt: float = 0.01               # NMPC 予測周期 [s] (Sx/Su/H の離散化に使用、変更不可)
-    NX: int = 5
+    NX: int = 8
     NU: int = 6
     U_min: float = 0.0
-    U_max: float = 1.0
+    U_max: float = 0.95
     damping_eps: float = 1.0e-3
 
     # ---- マルチレート ----
@@ -156,19 +197,19 @@ class Params:
     fault_iz_attenuation: float = 0.5          # 故障時 PID 積分項 i_z の減衰係数 (D3)
 
     # ---- cost (Bryson's Rule) ----
-    Q_phi: float = 100.0
-    Q_theta: float = 100.0
-    Q_p: float = 10.0
-    Q_q: float = 10.0
-    Q_r: float = 5.0
-    R_u: float = 14.0              # 旧 17.0 → 10.0 (NMPC を機敏に)
+    Q_phi: float = 1000.0
+    Q_theta: float = 1000.0
+    Q_p: float = 80.0
+    Q_q: float = 80.0
+    Q_r: float = 40.0
+    R_u: float = 620.0
     terminal_scale: float = 10.0
 
     # ---- RTI ----
     reset_period: int = 100
     sr2_damping_min: float = 0.2
     secant_min_norm: float = 1.0e-6
-    admm_max_iter: int = 1
+    admm_max_iter: int = 4
     admm_rho: float = 1.0
 
     # ---- ノイズ (真値 x_true / 観測 x_meas 分離) ----
@@ -242,14 +283,16 @@ class Params:
 class HexaModel:
     """
     Hexa-X 配置の姿勢ダイナミクス。
-        状態 x = [phi, theta, p, q, r]
+        NMPC 状態 x = [phi, theta, p, q, r, a_p, a_q, a_r]
+        PlantModel 内部では NX=5 として使い、6モータ遅れはプラント側に残す。
         入力 u = [u_M1..u_M6] in [0,1]
-            M1: 右横     ( 0, +L)   CW   s = -1
-            M2: 左横     ( 0, -L)   CCW  s = +1
-            M3: 前左     (+L√3/2, -L/2)   CW   s = -1
-            M4: 後右     (-L√3/2, +L/2)   CCW  s = +1
-            M5: 前右     (+L√3/2, +L/2)   CCW  s = +1
-            M6: 後左     (-L√3/2, -L/2)   CW   s = -1
+        モータ配置は Params.motor_x / motor_y / motor_s で与える (実機実測値)。
+            M1: 前右 (+0.085, +0.050)  CW   s = -1
+            M2: 前左 (+0.085, -0.050)  CCW  s = +1
+            M3: 右横 ( 0.000, +0.100)  CCW  s = +1
+            M4: 左横 ( 0.000, -0.100)  CW   s = -1
+            M5: 後右 (-0.085, +0.050)  CW   s = -1
+            M6: 後左 (-0.085, -0.050)  CCW  s = +1
         トルク:
             tau_x_i = -y_i * T_max * u_i
             tau_y_i = +x_i * T_max * u_i
@@ -257,30 +300,34 @@ class HexaModel:
     """
     def __init__(self, p: Params):
         self.p = p
-        angles_deg = np.array([90.0, -90.0, -30.0, 150.0, 30.0, -150.0])
-        s_yaw      = np.array([-1.0, +1.0, -1.0, +1.0, +1.0, -1.0])  # CW=-1, CCW=+1
-        ang = np.deg2rad(angles_deg)
-        L = p.arm_length
-        self.x_motor = L * np.cos(ang)
-        self.y_motor = L * np.sin(ang)
-        self.s_yaw = s_yaw
+        self.x_motor = np.asarray(p.motor_x, dtype=np.float64)
+        self.y_motor = np.asarray(p.motor_y, dtype=np.float64)
+        self.s_yaw = np.asarray(p.motor_s, dtype=np.float64)
         # モータ効率 (Λ = diag(eta))。FDI 既知ケースでは NMPC モデル側にも反映する。
         self.eta = np.ones(6, dtype=np.float64)
         self._build_Bc()
 
     def _build_Bc(self) -> None:
         p = self.p
-        Bc = np.zeros((5, 6), dtype=np.float64)
+        Batt = np.zeros((3, 6), dtype=np.float64)
         for k in range(6):
-            Bc[2, k] = -self.y_motor[k] * p.T_max / p.Ix
-            Bc[3, k] = +self.x_motor[k] * p.T_max / p.Iy
-            Bc[4, k] =  self.s_yaw[k]  * p.C_QT * p.T_max / p.Iz
-        self.Bc_nom = Bc           # 健全機のノミナル B
+            Batt[0, k] = -self.y_motor[k] * p.T_max / p.Ix
+            Batt[1, k] = +self.x_motor[k] * p.T_max / p.Iy
+            Batt[2, k] =  self.s_yaw[k] * p.C_QT * p.T_max / p.Iz
+        self.Batt_nom = Batt
         self._refresh_Bc_eff()
 
     def _refresh_Bc_eff(self) -> None:
         """B_eff = B_nom @ diag(eta).  η を更新したら必ず呼ぶ."""
-        self.Bc = self.Bc_nom * self.eta[np.newaxis, :]
+        self.Batt = self.Batt_nom * self.eta[np.newaxis, :]
+        if self.p.NX == 5:
+            self.Bc = np.zeros((5, 6), dtype=np.float64)
+            self.Bc[2:5, :] = self.Batt
+        else:
+            # FTC の eta は box のみに反映し、モデル入力へ二重に掛けない。
+            self.Batt = self.Batt_nom.copy()
+            self.Bc = np.zeros((8, 6), dtype=np.float64)
+            self.Bc[5:8, :] = self.Batt / self.p.tau_act
 
     def set_eta(self, eta: np.ndarray) -> None:
         """NMPC 内部モデルの モータ効率 Λ を設定 (FDI 既知ケース用)."""
@@ -307,14 +354,19 @@ class HexaModel:
 
         ap = self._abs_s(pr); aq = self._abs_s(qr); ar = self._abs_s(rr)
 
-        Bu = self.Bc @ u  # (5,)
-
-        xdot = np.empty(5, dtype=np.float64)
+        xdot = np.empty(p.NX, dtype=np.float64)
         xdot[0] = pr + qr * sphi * ttheta + rr * cphi * ttheta
         xdot[1] = qr * cphi - rr * sphi
-        xdot[2] = Bu[2] + ( -(p.Iz - p.Iy) * qr * rr - p.Cp * pr * ap ) / p.Ix
-        xdot[3] = Bu[3] + ( -(p.Ix - p.Iz) * rr * pr - p.Cq * qr * aq ) / p.Iy
-        xdot[4] = Bu[4] + ( -(p.Iy - p.Ix) * pr * qr - p.Cr * rr * ar ) / p.Iz
+        rigid = np.array([
+            (-(p.Iz - p.Iy) * qr * rr - p.Cp * pr * ap) / p.Ix,
+            (-(p.Ix - p.Iz) * rr * pr - p.Cq * qr * aq) / p.Iy,
+            (-(p.Iy - p.Ix) * pr * qr - p.Cr * rr * ar) / p.Iz,
+        ])
+        if p.NX == 5:
+            xdot[2:5] = self.Batt @ u + rigid
+        else:
+            xdot[2:5] = x[5:8] + rigid
+            xdot[5:8] = (self.Batt @ u - x[5:8]) / p.tau_act
         return xdot
 
     def jacobians(self, x: np.ndarray, u: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -328,7 +380,7 @@ class HexaModel:
         ttheta = math.sin(theta) / ctheta
         sec2 = 1.0 / (ctheta * ctheta)
 
-        A = np.zeros((5, 5), dtype=np.float64)
+        A = np.zeros((p.NX, p.NX), dtype=np.float64)
         A[0, 0] = (qr * cphi - rr * sphi) * ttheta
         A[0, 1] = (qr * sphi + rr * cphi) * sec2
         A[0, 2] = 1.0
@@ -354,16 +406,37 @@ class HexaModel:
         A[4, 3] = -(p.Iy - p.Ix) * pr / p.Iz
         A[4, 4] = -p.Cr * (ar + rr * dar) / p.Iz
 
+        if p.NX == 8:
+            A[2:5, 5:8] = np.eye(3)
+            A[5:8, 5:8] = -np.eye(3) / p.tau_act
         return A, self.Bc
 
     def discretize_euler(self, A_c: np.ndarray, B_c: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         dt = self.p.dt
-        I = np.eye(5, dtype=np.float64)
-        return I + dt * A_c, dt * B_c
+        I = np.eye(self.p.NX, dtype=np.float64)
+        Ad, Bd = I + dt * A_c, dt * B_c
+        if self.p.NX == 8:
+            alpha = math.exp(-dt / self.p.tau_act)
+            beta = self.p.tau_act * (1.0 - alpha)
+            gamma = dt - beta
+            Ad[2:5, 5:8] = beta * np.eye(3)
+            Ad[5:8, 5:8] = alpha * np.eye(3)
+            Bd[2:5, :] = gamma * self.Batt
+            Bd[5:8, :] = (1.0 - alpha) * self.Batt
+        return Ad, Bd
 
     def step_euler(self, x: np.ndarray, u: np.ndarray) -> np.ndarray:
         """NMPC 内部用の Euler 1 ステップ."""
-        return x + self.p.dt * self.f(x, u)
+        x_next = x + self.p.dt * self.f(x, u)
+        if self.p.NX == 8:
+            alpha = math.exp(-self.p.dt / self.p.tau_act)
+            beta = self.p.tau_act * (1.0 - alpha)
+            gamma = self.p.dt - beta
+            rigid = self.f(x, u)[2:5] - x[5:8]
+            a_cmd = self.Batt @ u
+            x_next[2:5] = x[2:5] + self.p.dt * rigid + beta * x[5:8] + gamma * a_cmd
+            x_next[5:8] = alpha * x[5:8] + (1.0 - alpha) * a_cmd
+        return x_next
 
     def step_rk4(self, x: np.ndarray, u: np.ndarray, dt: Optional[float] = None) -> np.ndarray:
         """プラント用の RK4 ステップ."""
@@ -401,6 +474,7 @@ class PlantModel:
         p_plant.Iz = p.Iz * p.plant_Iz_ratio
         p_plant.mass = p.mass * p.plant_mass_ratio
         p_plant.T_max = p.T_max * p.plant_T_max_ratio
+        p_plant.NX = 5  # 真のプラントは別経路の6モータ一次遅れを維持
         self.p_plant = p_plant
         self.attitude = HexaModel(p_plant)
 
@@ -784,7 +858,10 @@ class AdmmNmpcHex:
         self.L_chol: Optional[np.ndarray] = None
 
         # コスト重みベクトル
-        Q = np.array([p.Q_phi, p.Q_theta, p.Q_p, p.Q_q, p.Q_r], dtype=np.float64)
+        Q = np.array(
+            [p.Q_phi, p.Q_theta, p.Q_p, p.Q_q, p.Q_r, 0.0, 0.0, 0.0],
+            dtype=np.float64,
+        )
         Qf = Q * p.terminal_scale
         self.qbar = np.empty(self.NXT, dtype=np.float64)
         for k in range(N):
@@ -1200,152 +1277,48 @@ class Logger:
         )
 
     def plot(self, title: str = "", savepath: Optional[str] = None):
-        """5x4 サブプロット一覧表示 (姿勢/角速度/u_cmd/u_app/高度・外乱)."""
+        """Poster layout: 2x2 plots for roll, pitch, yaw, and altitude."""
         d = self.arrays()
-        fig, axs = plt.subplots(5, 4, figsize=(20, 16))
-        # PKG-E5: 水平移動 (x_pos, y_pos) があればタイトルに注釈
-        x_data = d['x']
-        if x_data.ndim >= 2 and x_data.shape[1] > PI_Y:
-            final_x = float(x_data[-1, PI_X])
-            final_y = float(x_data[-1, PI_Y])
-            max_dist = float(np.max(np.sqrt(x_data[:, PI_X] ** 2
-                                            + x_data[:, PI_Y] ** 2)))
-            full_title = (f"{title}\nhorizontal drift: final=("
-                          f"{final_x:+.2f},{final_y:+.2f}) m, "
-                          f"max={max_dist:.2f} m")
-            fig.suptitle(full_title, fontsize=13)
-        else:
+        fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+        if title:
             fig.suptitle(title, fontsize=14)
         t = d['t']
-        u_cmd = d['u_cmd']
-        u_app = d['u_app']
+        lw = 1.8
 
-        # 行0: 姿勢角と目標
-        axs[0, 0].plot(t, d['x'][:, 0], label='phi', color='C0')
-        axs[0, 0].plot(t, d['x_ref'][:, 0], '--', label='phi_ref', color='C1', alpha=0.7)
-        axs[0, 0].set_ylabel('phi [rad]')
+        axs[0, 0].plot(t, d['x'][:, PI_PHI], label='Measured', color='C0', lw=lw)
+        axs[0, 0].plot(t, d['x_ref'][:, 0], '--', label='Reference',
+                       color='C1', alpha=0.8, lw=lw)
+        axs[0, 0].set_ylabel('Roll φ [rad]', fontsize=11)
+        axs[0, 0].set_title('Roll', fontsize=12)
 
-        axs[0, 1].plot(t, d['x'][:, 1], label='theta', color='C0')
-        axs[0, 1].plot(t, d['x_ref'][:, 1], '--', label='theta_ref', color='C1', alpha=0.7)
-        axs[0, 1].set_ylabel('theta [rad]')
+        axs[0, 1].plot(t, d['x'][:, PI_THETA], label='Measured', color='C0', lw=lw)
+        axs[0, 1].plot(t, d['x_ref'][:, 1], '--', label='Reference',
+                       color='C1', alpha=0.8, lw=lw)
+        axs[0, 1].set_ylabel('Pitch θ [rad]', fontsize=11)
+        axs[0, 1].set_title('Pitch', fontsize=12)
 
-        axs[0, 2].plot(t, d['x'][:, 0] - d['x_ref'][:, 0], label='err_phi', color='C2')
-        axs[0, 2].plot(t, d['x'][:, 1] - d['x_ref'][:, 1], label='err_theta', color='C3')
-        axs[0, 2].axhline(0.0, color='k', lw=0.5, ls=':')
-        axs[0, 2].set_ylabel('attitude error [rad]')
+        axs[1, 0].plot(t, d['x'][:, PI_PSI], label='Measured', color='C0', lw=lw)
+        axs[1, 0].set_ylabel('Yaw ψ [rad]', fontsize=11)
+        axs[1, 0].set_title('Yaw', fontsize=12)
+        axs[1, 0].set_xlabel('Time [s]', fontsize=11)
 
-        axs[0, 3].plot(t, d['iter_us'], lw=0.6, color='C4', label='iter')
-        axs[0, 3].axhline(np.mean(d['iter_us']), color='r', ls='--', lw=0.8,
-                          label=f"mean={np.mean(d['iter_us']):.0f}us")
-        axs[0, 3].set_ylabel('NMPC iter [us]')
-
-        # 行1: 角速度
-        axs[1, 0].plot(t, d['x'][:, 2], label='p', color='purple')
-        axs[1, 0].set_ylabel('p [rad/s]')
-
-        axs[1, 1].plot(t, d['x'][:, 3], label='q', color='orange')
-        axs[1, 1].set_ylabel('q [rad/s]')
-
-        axs[1, 2].plot(t, d['x'][:, 4], label='r', color='brown')
-        axs[1, 2].set_ylabel('r [rad/s]')
-
-        # reset events (full rebuild) スパイク
-        axs[1, 3].step(t, d['was_reset'].astype(int), where='post', label='reset', color='red')
-        axs[1, 3].set_ylabel('SR2 reset flag')
-        axs[1, 3].set_ylim(-0.1, 1.1)
-
-        # 行2: コマンド入力 (NMPC 出力)  M1..M6 を 4 個 + 2 個に分配
-        axs[2, 0].plot(t, u_cmd[:, 0], label='M1 cmd', color='C0')
-        axs[2, 0].plot(t, u_cmd[:, 1], label='M2 cmd', color='C1')
-        axs[2, 0].set_ylabel('u_cmd M1,M2')
-        axs[2, 0].set_ylim(-0.05, 1.05)
-
-        axs[2, 1].plot(t, u_cmd[:, 2], label='M3 cmd', color='C0')
-        axs[2, 1].plot(t, u_cmd[:, 3], label='M4 cmd', color='C1')
-        axs[2, 1].set_ylabel('u_cmd M3,M4')
-        axs[2, 1].set_ylim(-0.05, 1.05)
-
-        axs[2, 2].plot(t, u_cmd[:, 4], label='M5 cmd', color='C0')
-        axs[2, 2].plot(t, u_cmd[:, 5], label='M6 cmd', color='C1')
-        axs[2, 2].set_ylabel('u_cmd M5,M6')
-        axs[2, 2].set_ylim(-0.05, 1.05)
-
-        # 入力合計推力 (mg = m*g 線とサニティ確認)
-        total_T = np.sum(u_app, axis=1)
-        axs[2, 3].plot(t, total_T, label='sum u_app', color='C5')
-        axs[2, 3].set_ylabel('Σ u_applied')
-
-        # 行3: 適用入力 M1..M6 + η + 故障情報
-        axs[3, 0].plot(t, u_app[:, 0], label='M1', color='C0')
-        axs[3, 0].plot(t, u_app[:, 1], label='M2', color='C1')
-        axs[3, 0].plot(t, u_app[:, 2], label='M3', color='C2')
-        axs[3, 0].set_ylabel('u_app M1-M3')
-        axs[3, 0].set_xlabel('t [s]')
-        axs[3, 0].set_ylim(-0.05, 1.05)
-
-        axs[3, 1].plot(t, u_app[:, 3], label='M4', color='C0')
-        axs[3, 1].plot(t, u_app[:, 4], label='M5', color='C1')
-        axs[3, 1].plot(t, u_app[:, 5], label='M6', color='C2')
-        axs[3, 1].set_ylabel('u_app M4-M6')
-        axs[3, 1].set_xlabel('t [s]')
-        axs[3, 1].set_ylim(-0.05, 1.05)
-
-        for k in range(6):
-            axs[3, 2].plot(t, d['eta'][:, k], label=f'η{k+1}', lw=0.9)
-        axs[3, 2].set_ylabel('η (motor health)')
-        axs[3, 2].set_xlabel('t [s]')
-        axs[3, 2].set_ylim(-0.05, 1.1)
-
-        # サチュ率 累積
-        sat = ((u_cmd >= 0.999) | (u_cmd <= 0.001)).any(axis=1).astype(float)
-        cum_sat = np.cumsum(sat) / np.maximum(np.arange(1, len(sat) + 1), 1)
-        axs[3, 3].plot(t, cum_sat, color='C6', label='sat rate (any motor)')
-        axs[3, 3].set_ylabel('cumulative sat rate')
-        axs[3, 3].set_xlabel('t [s]')
-        axs[3, 3].set_ylim(-0.02, 1.02)
-
-        # 行 4: 高度・速度・PID 内訳・外乱
-        # (4,0) 高度  z [m] vs z_ref  ※プロットは "高度 -z" (上向き正) で
-        axs[4, 0].plot(t, -d['x'][:, PI_Z], label='altitude (-z)', color='C0')
-        axs[4, 0].plot(t, -d['z_ref'],   '--', label='z_ref (alt)',
-                       color='C1', alpha=0.7)
-        axs[4, 0].set_ylabel('altitude [m]')
-        axs[4, 0].set_xlabel('t [s]')
-
-        # (4,1) 鉛直速度 w (NED 下向き正)
-        axs[4, 1].plot(t, d['x'][:, PI_W], label='w [m/s]', color='C0')
-        axs[4, 1].axhline(0.0, color='k', lw=0.5, ls=':')
-        axs[4, 1].set_ylabel('w (NED, down+) [m/s]')
-        axs[4, 1].set_xlabel('t [s]')
-
-        # (4,2) PID 推力指令の内訳
-        axs[4, 2].plot(t, d['T_cmd'],  label='T_cmd',  color='C0')
-        axs[4, 2].plot(t, d['T_trim'], '--', label='T_trim', color='C2', alpha=0.8)
-        axs[4, 2].plot(t, d['T_fb'],   ':',  label='T_fb',   color='C3', alpha=0.8)
-        axs[4, 2].set_ylabel('thrust cmd [N]')
-        axs[4, 2].set_xlabel('t [s]')
-
-        # (4,3) 外乱: F_d_z + tau_d[xyz]
-        if d['F_d'].size > 0 and d['F_d'].shape[1] >= 3:
-            axs[4, 3].plot(t, d['F_d'][:, 2], label='F_d_z [N]', color='C0')
-        if d['tau_d'].size > 0 and d['tau_d'].shape[1] >= 3:
-            for k_ax, lab, col in [(0, 'tau_d_x', 'C1'),
-                                   (1, 'tau_d_y', 'C2'),
-                                   (2, 'tau_d_z', 'C3')]:
-                axs[4, 3].plot(t, d['tau_d'][:, k_ax], label=lab,
-                               color=col, alpha=0.8)
-        axs[4, 3].set_ylabel('disturbance')
-        axs[4, 3].set_xlabel('t [s]')
+        axs[1, 1].plot(t, -d['x'][:, PI_Z], label='Measured', color='C0', lw=lw)
+        axs[1, 1].plot(t, -d['z_ref'], '--', label='Reference',
+                       color='C1', alpha=0.8, lw=lw)
+        axs[1, 1].set_ylabel('Altitude [m]', fontsize=11)
+        axs[1, 1].set_title('Altitude', fontsize=12)
+        axs[1, 1].set_xlabel('Time [s]', fontsize=11)
 
         for ax in axs.flat:
             ax.grid(True, alpha=0.3)
-            ax.legend(loc='best', fontsize=7)
+            ax.legend(loc='best', fontsize=10)
+            ax.tick_params(labelsize=10)
 
-        fig.tight_layout(rect=[0, 0, 1, 0.96])
+        fig.tight_layout(rect=[0, 0, 1, 0.95] if title else None)
         if savepath:
             p = Path(savepath)
             p.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(p, dpi=120)
+            fig.savefig(p, dpi=200, bbox_inches='tight')
             print(f"  [saved] {p}")
         return fig
 
@@ -1356,34 +1329,37 @@ class Logger:
 def sanity_checks(params: Params) -> None:
     print("\n=== Sanity Checks ===")
     model = HexaModel(params)
-    x0 = np.zeros(5, dtype=np.float64)
+    x0 = np.zeros(params.NX, dtype=np.float64)
 
-    # 1) B_c の数値
-    print("  B_c (5x6) =")
-    for row in model.Bc:
+    # 1) B_att の数値
+    print("  B_att (3x6) =")
+    for row in model.Batt:
         print("    [{}]".format(", ".join(f"{v:+7.3f}" for v in row)))
-    expected_phi_M1 = -model.p.arm_length * model.p.T_max / model.p.Ix
-    assert abs(model.Bc[2, 0] - expected_phi_M1) < 1e-6, \
-        f"B_c[2,0] expected {expected_phi_M1}, got {model.Bc[2,0]}"
+    expected_phi_M1 = -params.motor_y[0] * model.p.T_max / model.p.Ix
+    assert abs(model.Batt[0, 0] - expected_phi_M1) < 1e-6
 
-    # 2) M1 のみ duty=1: ṗ<0 (右側を持ち上げ → 左ロール)
+    trim_torque = model.Batt_nom @ np.ones(6)
+    print(f"  [B_att·1] = {trim_torque}  (expect ~0)")
+    assert np.max(np.abs(trim_torque)) < 1e-9, \
+        f"B_c·1 != 0 (機体幾何が非対称): {trim_torque}"
+
+    # 2) M1 のみ duty=1: actuator derivative に正しい符号が出る
     u = np.zeros(6); u[0] = 1.0
     xd = model.f(x0, u)
     print(f"  [M1 only] xdot = {xd}")
-    assert xd[2] < 0, "M1 (right) duty=1 → pdot<0 を期待 (符号反転している可能性)"
+    assert xd[5] < 0 and xd[6] > 0
 
-    # 3) M5 のみ duty=1: q̇>0 (前を持ち上げ)
+    # 3) M5 のみ duty=1: q̇<0 (後右を持ち上げ → 機首下げ), ṗ<0 (右を持ち上げ)
     u = np.zeros(6); u[4] = 1.0
     xd = model.f(x0, u)
     print(f"  [M5 only] xdot = {xd}")
-    assert xd[3] > 0, "M5 (前右) duty=1 → qdot>0 を期待"
-    assert xd[2] < 0, "M5 は前右 (y>0) なので pdot<0 を期待"
+    assert xd[6] < 0 and xd[5] < 0
 
     # 4) ホバートリム: 全機 u_hover_nom → 角加速度 ≈ 0
     u = np.full(6, params.u_hover_nom)
     xd = model.f(x0, u)
-    print(f"  [hover all-6] xdot[2..4] = {xd[2:]}  (expect ~0)")
-    assert np.max(np.abs(xd[2:])) < 1e-6, "ホバートリムで角加速度が出ている"
+    print(f"  [hover all-6] xdot = {xd}  (expect ~0)")
+    assert np.max(np.abs(xd)) < 1e-6, "ホバートリムで角加速度が出ている"
 
     # 5) 総推力 = m*g
     total_thrust = np.sum(u) * params.T_max
@@ -1391,20 +1367,14 @@ def sanity_checks(params: Params) -> None:
     assert abs(total_thrust - params.mass * params.gravity) < 1e-6
 
     # 6) B_c 行列のランク (ロール/ピッチ/ヨーの 3 行)
-    rank_attitude = np.linalg.matrix_rank(model.Bc[2:, :])
-    print(f"  rank(B_c[2:5,:]) = {rank_attitude}  (期待 3, null space 3-dim)")
+    rank_attitude = np.linalg.matrix_rank(model.Batt)
+    print(f"  rank(B_att) = {rank_attitude}  (期待 3, null space 3-dim)")
     assert rank_attitude == 3
 
-    # 7) set_eta: B_eff = B_nom · diag(η) のスケーリング確認
+    # 7) eta は NX8 モデルへ二重適用しない
     eta_test = np.array([1.0, 1.0, 1.0, 1.0, 0.5, 1.0])  # M5 部分故障
     model.set_eta(eta_test)
-    ratio = model.Bc[2:, 4] / model.Bc_nom[2:, 4]
-    print(f"  [set_eta η5=0.5] B_eff[:,4] / B_nom[:,4] = {ratio} (expect ~0.5)")
-    assert np.allclose(ratio, 0.5)
-    # 単独 M5 印加で  pdot, qdot, rdot がノミナルの半分になる
-    u = np.zeros(6); u[4] = 1.0
-    xd = model.f(x0, u)
-    print(f"  [M5 only, η5=0.5] xdot[2..4] = {xd[2:]}  (各々 η=1 時の半分)")
+    assert np.allclose(model.Batt, model.Batt_nom)
     model.set_eta(np.ones(6))  # 元に戻す
 
     # 8) AltitudePID: ホバートリム (z=z_ref, w=0, phi=theta=0) で T_cmd ≈ m*g
@@ -1492,7 +1462,7 @@ def sanity_checks(params: Params) -> None:
         np.full(6, params.U_min - params.u_hover_nom),
         np.full(6, params.U_max - params.u_hover_nom),
     )
-    x0_hover = np.zeros(5)
+    x0_hover = np.zeros(params.NX)
     X_ref_h = np.zeros(params.NXT)
     U_ref_h = np.zeros(params.NUT)
     # warm-start を 1 回安定化させるため 2 回呼ぶ (初回は full rebuild)
@@ -1501,11 +1471,10 @@ def sanity_checks(params: Params) -> None:
     print(f"  [加算合成 hover] Δu = {delta_u_h}  (期待: 全成分 ≈ 0)")
     assert np.max(np.abs(delta_u_h)) < 1e-3, "ホバー条件で Δu が 0 にならない"
 
-    # 15) 加算合成: u_baseline + Δu が [0, 1] 内に収まる
+    # 15) 加算合成: u_baseline + Δu が firmware box 内に収まる
     u_total = u_base + delta_u_h
-    assert np.all(u_total >= -1e-6) and np.all(u_total <= 1.0 + 1e-6), \
-        f"u_total が [0,1] を超過: {u_total}"
-    print(f"  [加算合成 hover] u_total = u_base + Δu = {u_total}  (期待: [0,1])")
+    assert np.all(u_total >= -1e-6) and np.all(u_total <= params.U_max + 1e-6), \
+        f"u_total が box を超過: {u_total}"
 
     # 16) PKG-D1: u_baseline ramp の補間ロジック検証
     print("\n  [PKG-D1] u_baseline ramp 補間テスト")
@@ -1730,7 +1699,8 @@ def plot_scenario_comparison(results: dict, savepath: str) -> None:
             ax.text(b.get_x() + b.get_width() / 2, v + ymax * 0.02,
                     f"{v:.3g}", ha='center', va='bottom', fontsize=7)
 
-    fig.suptitle("Scenario Performance Comparison (S1-S8)", fontsize=13)
+    fig.suptitle(f"Scenario Performance Comparison ({names[0]}-{names[-1]})",
+                 fontsize=13)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     fig.savefig(savepath, dpi=140, bbox_inches='tight')
     print(f"  [saved] {savepath}")
@@ -1863,7 +1833,8 @@ def run_scenario(params: Params,
     U_ref = np.tile(u_hover, params.N)
     last_iter_us  = 0.0
     last_was_reset = False
-    x_ref = np.zeros(5, dtype=np.float64)
+    x_ref = np.zeros(params.NX, dtype=np.float64)
+    a_hat = nmpc_model.Batt @ init_u
 
     # ---- PKG-C: LPF は撤去 (tau=0 で通過動作)、変数は構造保持のため維持 ----
     _tau = params.u_ref_lpf_tau
@@ -1999,14 +1970,16 @@ def run_scenario(params: Params,
 
         # ---- 姿勢参照 (プラン時: 故障+delay で roll ステップ) ----
         if use_plan:
-            x_ref = np.zeros(5, dtype=np.float64)
+            x_ref = np.zeros(params.NX, dtype=np.float64)
             if (plan_phi_step is not None and fault_done
                     and t_fault is not None):
                 delay_s, phi_val = plan_phi_step
                 if t >= t_fault + delay_s:
                     x_ref[0] = float(phi_val)
         else:
-            x_ref = make_ref_from_schedule(t, ref_schedule)
+            x_ref5 = make_ref_from_schedule(t, ref_schedule)
+            x_ref = np.zeros(params.NX, dtype=np.float64)
+            x_ref[:5] = x_ref5
 
         # ---- z_ref の決定 (ascent 中は不問、control 後はランプ) ----
         if use_plan:
@@ -2113,11 +2086,13 @@ def run_scenario(params: Params,
             t0 = time.perf_counter()
             if phase == "control":
                 # PKG-C: 加算合成モード (NMPC は観測状態 x7_meas を使用)
-                delta_u = nmpc.step(x7_meas[:5], X_ref, U_ref, u_baseline=u_baseline)
-                u_cmd = np.clip(u_baseline + delta_u, 0.0, 1.0)
+                x_ctrl = np.concatenate([x7_meas[:5], a_hat])
+                delta_u = nmpc.step(x_ctrl, X_ref, U_ref, u_baseline=u_baseline)
+                u_cmd = np.clip(u_baseline + delta_u, 0.0, params.U_max)
             else:
                 # ascent: 旧来通り絶対モード (u_cmd は下で ascent_pwm_vec に上書き)
-                _ = nmpc.step(x7_meas[:5], X_ref, U_ref)
+                x_ctrl = np.concatenate([x7_meas[:5], a_hat])
+                _ = nmpc.step(x_ctrl, X_ref, U_ref)
             last_iter_us  = (time.perf_counter() - t0) * 1.0e6
             last_was_reset = nmpc.last_was_reset
         else:
@@ -2133,6 +2108,8 @@ def run_scenario(params: Params,
             u_cmd_q = np.clip(np.round(u_cmd * levels) / levels, 0.0, 1.0)
         else:
             u_cmd_q = u_cmd
+        alpha_hat = math.exp(-dt_sim / params.tau_act)
+        a_hat = alpha_hat * a_hat + (1.0 - alpha_hat) * (nmpc_model.Batt @ u_cmd_q)
         u_actual = plant.apply_actuator_dynamics(u_cmd_q, dt_sim)
         u_applied = eta * u_actual
         x7_true = plant.step_rk4(x7_true, u_applied, F_world, tau_body, dt_sim)
@@ -2273,10 +2250,32 @@ def main():
         "S3b: M5 complete fault, FDI UNKNOWN",
         faults=[(4, 0.0)], fdi_known=False, png_name="sim_s3b_complete_unknown.png")
 
+    # --- 2 発故障の配置依存性 (S4a/S4b/S5a/S5b) ---
+    # 六角形リング順は M6-M4-M2-M1-M3-M5。停止 2 発の相対位置で性質が変わる:
+    #   隣接 (S4a/S4b)  : 残存 B_c は rank 3 だが、共通モードに大きなロール/ピッチ偏りが残る
+    #                     S4a (M5+M6, 後方) は偏りがピッチのみ、
+    #                     S4b (M3+M5, 右側) はロール+ピッチに分散し合成量はより大きい
+    #   対向 180° (S5a) : 偏りは 0 だが rank 2 に縮退し、ヨー軸の制御権限を失う
+    #   一つ飛ばし (S5b): rank 3 を保つが、同回転 2 発を失うため共通モードにヨー偏りが乗る
     results['S4'] = run_ftc_plan(
-        "S4: M5+M6 both fail",
+        "S4: M5+M6 adjacent pair (rear) fail",
         faults=[(4, 0.0), (5, 0.0)], fdi_known=True,
         png_name="sim_s4_two_motor_fail.png")
+
+    results['S4b'] = run_ftc_plan(
+        "S4b: M3+M5 adjacent pair (right) fail",
+        faults=[(2, 0.0), (4, 0.0)], fdi_known=True,
+        png_name="sim_s4b_adjacent_right.png")
+
+    results['S5a'] = run_ftc_plan(
+        "S5a: M1+M6 opposite pair (180 deg) fail",
+        faults=[(0, 0.0), (5, 0.0)], fdi_known=True,
+        png_name="sim_s5a_opposite_pair.png")
+
+    results['S5b'] = run_ftc_plan(
+        "S5b: M1+M5 skip-one pair (120 deg) fail",
+        faults=[(0, 0.0), (4, 0.0)], fdi_known=True,
+        png_name="sim_s5b_skipone_pair.png")
 
     # 外乱時刻は ascent 終了 (~3 s) 以降に配置。
     # 新タイムラインの目安: ascent ~3 s, switch ~3 s, fault ~5 s, step ~10 s, end 15 s

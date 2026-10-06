@@ -22,8 +22,8 @@ Raspberry Pi Pico 2 W 上で動作する Hexa-X ヘキサコプタ向け **非�
 
 ### 1.3 設計方針
 
-- **絶対モード**: 最適化変数 `U` は各モータの **絶対 duty**（0〜1）。加算合成（PKG-C）方式は未採用。
-- **`U_ref` = ホバー baseline**: スロットルから算出した `u_hover` を全ホライズンにタイルし、入力コストで baseline 付近へ引く。`B_c · 1 = 0` より共通モードは baseline を維持し、姿勢補正は差分的に作用する。
+- **差分入力**: 最適化変数は `Δu`、実出力は `u_hover + Δu`。Box は絶対 duty `[0, 0.95]` と等価になるよう平行移動する。
+- **3軸アクチュエータ状態**: 6モータ共通時定数を `a=B_attω` へ厳密縮約し、最終PWM dutyから400 Hzで推定する。
 - **RTI + 準ニュートン更新**: 毎周期フル SQP は行わず、Real-Time Iteration (RTI) と TR1/SR2 による Hessian / 予測行列の差分更新で計算量を削減。
 - **Box 制約 ADMM**: モータ duty の `[0, 1]` 制約を ADMM で処理（RTI では 1 反復）。
 
@@ -76,10 +76,10 @@ Raspberry Pi Pico 2 W 上で動作する Hexa-X ヘキサコプタ向け **非�
 
 ### 3.1 状態ベクトル
 
-5 次元の姿勢ダイナミクス:
+8 次元の姿勢・アクチュエータダイナミクス:
 
 \[
-\mathbf{x} = [\phi,\ \theta,\ p,\ q,\ r]^T \in \mathbb{R}^5
+\mathbf{x} = [\phi,\ \theta,\ p,\ q,\ r,\ a_p,\ a_q,\ a_r]^T \in \mathbb{R}^8
 \]
 
 | 要素 | 意味 |
@@ -89,6 +89,7 @@ Raspberry Pi Pico 2 W 上で動作する Hexa-X ヘキサコプタ向け **非�
 | \(p\) | ロール角速度 [rad/s] |
 | \(q\) | ピッチ角速度 [rad/s] |
 | \(r\) | ヨー角速度 [rad/s] |
+| \(a_p,a_q,a_r\) | モータ由来の実効角加速度 [rad/s²] |
 
 実機では EKF 推定値からバイアスを差し引いた値を使用:
 
@@ -98,6 +99,7 @@ x0(1) = Theta - Theta_bias;
 x0(2) = Wp - Pbias;
 x0(3) = Wq - Qbias;
 x0(4) = Wr - Rbias;
+x0.segment<3>(5) = actuator_state_read_core1();
 ```
 
 ### 3.2 入力ベクトル
@@ -125,13 +127,14 @@ x0(4) = Wr - Rbias;
 \end{aligned}
 \]
 
-**动力学（剛体 + 空力ダンピング + モータトルク）:**
+**動力学（剛体 + 空力ダンピング + 一次遅れ）:**
 
 \[
 \begin{aligned}
-\dot{p} &= (B_c \mathbf{u})_p + \frac{-(I_z - I_y)qr - C_p p|p|}{I_x} \\
-\dot{q} &= (B_c \mathbf{u})_q + \frac{-(I_x - I_z)rp - C_q q|q|}{I_y} \\
-\dot{r} &= (B_c \mathbf{u})_r + \frac{-(I_y - I_x)pq - C_r r|r|}{I_z}
+\dot{p} &= a_p + \frac{-(I_z - I_y)qr - C_p p|p|}{I_x} \\
+\dot{q} &= a_q + \frac{-(I_x - I_z)rp - C_q q|q|}{I_y} \\
+\dot{r} &= a_r + \frac{-(I_y - I_x)pq - C_r r|r|}{I_z} \\
+\dot{\mathbf a} &= \frac{B_{att}\Delta\mathbf u-\mathbf a}{\tau_{act}}
 \end{aligned}
 \]
 
@@ -141,15 +144,15 @@ x0(4) = Wr - Rbias;
 |v| \approx \sqrt{v^2 + \varepsilon^2}, \quad \varepsilon = \texttt{damping\_eps} = 10^{-3}
 \]
 
-### 3.4 入力行列 \(B_c\)
+### 3.4 姿勢入力行列 \(B_{att}\)
 
-\(B_c\) は状態に依存せず、Hexa-X 幾何から定数として構築（`model_B_const`）:
+\(B_{att}\) は状態に依存せず、Hexa-X 幾何から定数として構築:
 
 \[
 \begin{aligned}
-B_c(2, k) &= -y_k \cdot l \cdot T_{max} / I_x \quad \text{(roll)} \\
-B_c(3, k) &= +x_k \cdot l \cdot T_{max} / I_y \quad \text{(pitch)} \\
-B_c(4, k) &= s_k \cdot C_{QT} \cdot T_{max} / I_z \quad \text{(yaw)}
+B_{att}(0, k) &= -y_k T_{max} / I_x \\
+B_{att}(1, k) &= +x_k T_{max} / I_y \\
+B_{att}(2, k) &= s_k C_{QT} T_{max} / I_z
 \end{aligned}
 \]
 
@@ -166,22 +169,27 @@ B_c(4, k) &= s_k \cdot C_{QT} \cdot T_{max} / I_z \quad \text{(yaw)}
 
 **サニティチェック**（起動時 `model_sanity()`）:
 
-1. \(B_c \mathbf{1} = \mathbf{0}\)（全 6 発均等推力で姿勢トルク 0）
-2. \(B_c\) の姿勢行（2〜4 行）のランク = 3
+1. \(B_{att}\mathbf{1} = \mathbf{0}\)
+2. \(\mathrm{rank}(B_{att})=3\)
 
 ### 3.5 離散化
 
-オイラー法（サンプリング \(dt = 0.01\) s）:
+剛体項はオイラー法、アクチュエータ部は厳密 ZOH:
 
 \[
-A_d = I + dt \cdot A_c, \quad B_d = dt \cdot B_c
+\alpha=e^{-dt/\tau},\quad \beta=\tau(1-\alpha),\quad \gamma=dt-\beta
 \]
 
 非線形 1 ステップシミュレーション:
 
 \[
-\mathbf{x}_{k+1} = \mathbf{x}_k + dt \cdot f(\mathbf{x}_k, \mathbf{u}_k)
+\mathbf a_{k+1}=\alpha\mathbf a_k+(1-\alpha)B_{att}\Delta\mathbf u_k
 \]
+
+`tau_act=0.045 s` は検証用の暫定値であり、同定済み真値ではない。400 Hz の出力段で
+フェイルセーフ・clamp・故障発処理後の実 PWM duty を用いて `a_hat` を伝播し、
+sequence counter とメモリバリアで core1 へ渡す。一次遅れとの二重補償を避けるため
+`delay_comp_steps=0` とする。初版の `Q_a_p,Q_a_q,Q_a_r` はすべて 0。
 
 ---
 
@@ -191,14 +199,14 @@ A_d = I + dt \cdot A_c, \quad B_d = dt \cdot B_c
 
 | 記号 | 値 | 意味 |
 |------|-----|------|
-| \(N\) | 20 | 予測ステップ数 |
+| \(N\) | 12 | 予測ステップ数 |
 | \(dt\) | 0.01 s | サンプリング周期 |
-| \(NX\) | 5 | 状態次元 |
+| \(NX\) | 8 | 状態次元 |
 | \(NU\) | 6 | 入力次元 |
-| \(NX_{total}\) | 100 | \(NX \times N\) |
-| \(NU_{total}\) | 120 | \(NU \times N\) |
+| \(NX_{total}\) | 96 | \(NX \times N\) |
+| \(NU_{total}\) | 72 | \(NU \times N\) |
 
-予測時間幅: \(T_p = N \cdot dt = 0.2\) s
+予測時間幅: \(T_p = N \cdot dt = 0.12\) s
 
 ### 4.2 コスト関数
 
@@ -449,9 +457,9 @@ NMPC モードでは `rate_control` 内の PID ミキサをバイパスし、100
 
 | 行列 | サイズ | 概算 |
 |------|--------|------|
-| \(S_u\) | 100×120 | 48 KB |
-| \(M(H)\) | 120×120 | 57.6 KB |
-| Cholesky \(L\) | 120×120 | 57.6 KB |
+| \(S_u\) | 96×72 | 27.0 KiB |
+| \(M(H)\) | 72×72 | 20.25 KiB |
+| Cholesky \(L\) | 72×72 | 20.25 KiB |
 
 `EIGEN_NO_MALLOC` により実行時ヒープ確保を禁止。
 
@@ -521,7 +529,7 @@ core0 が 10 Hz で USB シリアルに CSV 出力。主要列:
 | 項目 | PID（従来） | NMPC（本実装） |
 |------|------------|----------------|
 | 制御構造 | カスケード（角度→角速度→ミキサ） | 6 入力直接最適化 |
-| 予測 | なし | 0.2 s 先まで |
+| 予測 | なし | 0.12 s 先まで |
 | 制約 | 事後 sat | 予測中に Box 制約考慮 |
 | 計算 | 軽量 | 8〜10 ms/周期 |
 | 切替 | `#ifndef USE_NMPC` | `#ifdef USE_NMPC` |

@@ -1,5 +1,5 @@
 // nmpc.cpp ----------------------------------------------------------------
-// 4 入力姿勢制御 NMPC の本体実装
+// 6 入力姿勢制御 NMPC の本体実装
 //
 // 設計概要:
 //   ・凝縮形 X = Sx x0 + Su U_stack
@@ -57,13 +57,17 @@ static NmpcCostParams clamp_cost_params(const NmpcCostParams &p)
 
 static void build_cost_diag(CostDiag &cd, const NmpcCostParams &p)
 {
-    const float Q[mpc::NX] = { p.Q_phi, p.Q_theta, p.Q_p, p.Q_q, p.Q_r };
+    // a_p/a_q/a_r は未観測の内部状態であり、初版では直接罰しない。
+    const float Q[mpc::NX] = {
+        p.Q_phi, p.Q_theta, p.Q_p, p.Q_q, p.Q_r, 0.0f, 0.0f, 0.0f
+    };
     const float Qf[mpc::NX] = {
         p.terminal_scale * p.Q_phi,
         p.terminal_scale * p.Q_theta,
         p.terminal_scale * p.Q_p,
         p.terminal_scale * p.Q_q,
         p.terminal_scale * p.Q_r,
+        0.0f, 0.0f, 0.0f,
     };
     for (int k = 0; k < mpc::N; ++k) {
         const float *Qk = (k == mpc::N - 1) ? Qf : Q;
@@ -160,6 +164,44 @@ void nonlinear_rollout(const StateVec &x0,
 }
 
 bool llt_is_healthy(const Eigen::LLT<HMat, Eigen::Lower> &llt);
+
+// Eigen::LLT::rankUpdate() は内部で Dynamic ベクトルを確保するため、
+// EIGEN_NO_MALLOC の実機制御ループでは使用できない。固定長 scratch を作業ベクトルとして
+// 破壊的に使い、下三角 Cholesky 因子を直接 update/downdate する。
+// matrixLLT() は const view しか公開しないが、非 const LLT 自身の内部保存を更新している。
+bool llt_rank_update_no_malloc(Eigen::LLT<HMat, Eigen::Lower> &llt,
+                               UStackVec &work,
+                               float sigma)
+{
+    HMat &L = const_cast<HMat &>(llt.matrixLLT());
+
+    for (int k = 0; k < mpc::NU_TOTAL; ++k) {
+        const float Lkk = L(k, k);
+        const float xk = work(k);
+        if (!(isfinite(Lkk) && Lkk > 0.0f && isfinite(xk))) {
+            return false;
+        }
+
+        const float r2 = Lkk * Lkk + sigma * xk * xk;
+        if (!(isfinite(r2) && r2 > 0.0f)) {
+            return false;
+        }
+
+        const float r = sqrtf(r2);
+        const float c = r / Lkk;
+        const float s = xk / Lkk;
+        L(k, k) = r;
+
+        for (int i = k + 1; i < mpc::NU_TOTAL; ++i) {
+            const float Lik = L(i, k);
+            const float xi = work(i);
+            const float Lik_new = (Lik + sigma * s * xi) / c;
+            L(i, k) = Lik_new;
+            work(i) = c * xi - s * Lik_new;
+        }
+    }
+    return true;
+}
 
 // M = Su_w^T * Su_w を BSS 上の M に直接書き込む (rankUpdate / Eigen GEMM のスタック消費を回避)
 // ---- 2026-09-19: Su のブロック下三角構造を使う ----
@@ -342,10 +384,11 @@ void sr2_update_h(NmpcContext &ctx, bool tr1_applied)
     ctx.scratch.sr2_p = ctx.scratch.sr2_a + (0.5f * (c + 1.0f)) * ctx.scratch.tr1_s_u;
     ctx.scratch.sr2_q = ctx.scratch.sr2_a + (0.5f * (c - 1.0f)) * ctx.scratch.tr1_s_u;
 
-    ctx.llt.rankUpdate(ctx.scratch.sr2_p, +1.0f);
-    ctx.llt.rankUpdate(ctx.scratch.sr2_q, -1.0f);
+    const bool update_ok =
+        llt_rank_update_no_malloc(ctx.llt, ctx.scratch.sr2_p, +1.0f)
+        && llt_rank_update_no_malloc(ctx.llt, ctx.scratch.sr2_q, -1.0f);
 
-    if (!llt_is_healthy(ctx.llt)) {
+    if (!update_ok || !llt_is_healthy(ctx.llt)) {
         ctx.need_full_rebuild = true;
         ctx.rebuild_cause_pending = NMPC_REBUILD_SR2_UNHEALTHY;
     }
@@ -618,7 +661,8 @@ bool nmpc_delay_predict(const StateVec &x0, const InputVec *hist, int n, float d
         }
     }
     // 健全性: 遅れ時間ぶんの予測変化が物理的にあり得る範囲か。超えたら補償せず x0 を使う。
-    //   角度変化 < 20 deg、角速度変化 < 10 rad/s (573 deg/s)。正常飛行では角度数 deg・角速度数十 deg/s。
+//   角度変化 < 20 deg、角速度変化 < 10 rad/s (573 deg/s)。正常飛行では角度数 deg・角速度数十 deg/s。
+//   actuator state も finite であることは allFinite() が保証する。
     const float dphi = x(0) - x0(0), dth = x(1) - x0(1);
     const float dp = x(2) - x0(2), dq = x(3) - x0(3), dr = x(4) - x0(4);
     const bool ok = x.allFinite()
@@ -710,7 +754,7 @@ void nmpc_step(NmpcContext &ctx,
     warm_start_shift(ctx.ws);
     // 線形化点は **射影後の z**（= 実際にモータへ出た Δu）にする（2026-09-10）。
     // ws.U は ADMM の射影前の主変数で box に縛られず、大きな角速度が入った周期には
-    // 物理上限 (√120×0.95=10.4) を桁で超えることがある（0910_100Hz_v4 リプレイで 8599）。
+    // 物理上限 (√NU_TOTAL×0.95) を桁で超えることがある（0910_100Hz_v4 リプレイで 8599）。
     // そこで線形化すると Su/Sx が無意味になり、非有限へ落ちて安全弁 2 が Δu=0 を出す。
     // 機体を駆動しているのは z なので、軌道の線形化も z 周りが正しい。
     // リプレイ 4 飛行で |U_lin|max 8599→4.25、nonfinite 1→0、λ リセット 7→3、実機 duty との差は同等。

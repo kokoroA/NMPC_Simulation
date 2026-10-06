@@ -35,7 +35,7 @@ AP_PASS = "benzen2026"
 
 NMPC_UDP_MAGIC = 0xBEEF
 # wifi_telemetry.hpp の NMPC_UDP_VER と一致させること
-NMPC_UDP_VER = 5
+NMPC_UDP_VER = 6
 NMPC_PKT_REGISTER = 0x01
 NMPC_PKT_REGISTER_ACK = 0x02
 NMPC_PKT_SET_COST = 0x10
@@ -53,6 +53,7 @@ NMPC_BENCH_CSV_COLS = [
     "cnt_tr1", "cnt_tr1_ok", "cnt_tr1_skip",
     "cnt_rst_period", "cnt_rst_ext", "cnt_sr2_c", "cnt_sr2_llt", "cnt_rst_after_sr2",
     "u_fr", "u_fl", "u_mr", "u_ml", "u_rr", "u_rl",
+    "a_hat_p", "a_hat_q", "a_hat_r",
     "d_fr", "d_fl", "d_mr", "d_ml", "d_rr", "d_rl",
     "ftc",
     "failsafe",
@@ -84,7 +85,7 @@ TEL_FMT = (
     + "BBBBBBBB"  # arm_flag .. failsafe
     + "i"         # cycles_since_reset
     + "8I"        # cnt_tr1_path .. cnt_reset_after_sr2
-    + "34f"
+    + "37f"
     + "BBHI"      # rx_flags, rx_framelost_run, _rsv16, rx_framelost_cnt (ver 5)
 )
 
@@ -202,6 +203,7 @@ def parse_tel(data: bytes) -> dict | None:
         "phi_ref", "theta_ref", "psi_ref", "T_ref", "u_base", "schedule_alpha",
         "iter_us", "loop_us", "cost", "iter_max",
         "u_fr", "u_fl", "u_mr", "u_ml", "u_rr", "u_rl",
+        "a_hat_p", "a_hat_q", "a_hat_r",
         "d_fr", "d_fl", "d_mr", "d_ml", "d_rr", "d_rl",
         "Q_phi", "Q_theta", "Q_p", "Q_q", "Q_r", "R_u", "terminal_scale",
         "rx_flags", "rx_fl_run", "_rsv16", "rx_fl_cnt",
@@ -240,6 +242,7 @@ def format_bench_csv_row(row: dict) -> str:
         f"{int(r['cnt_sr2_c'])},{int(r['cnt_sr2_llt'])},{int(r['cnt_rst_after_sr2'])},"
         f"{r['u_fr']:.4f},{r['u_fl']:.4f},{r['u_mr']:.4f},{r['u_ml']:.4f},"
         f"{r['u_rr']:.4f},{r['u_rl']:.4f},"
+        f"{r['a_hat_p']:.4f},{r['a_hat_q']:.4f},{r['a_hat_r']:.4f},"
         f"{r['d_fr']:.4f},{r['d_fl']:.4f},{r['d_mr']:.4f},{r['d_ml']:.4f},"
         f"{r['d_rr']:.4f},{r['d_rl']:.4f}"
     )

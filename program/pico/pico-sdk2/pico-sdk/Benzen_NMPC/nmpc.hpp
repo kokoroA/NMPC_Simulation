@@ -1,7 +1,8 @@
 // nmpc.hpp ----------------------------------------------------------------
-// 4 入力姿勢制御 NMPC (RTI + TR1/SR2 準ニュートン更新 + Box 制約 ADMM)
+// 6 入力姿勢制御 NMPC (RTI + TR1/SR2 準ニュートン更新 + Box 制約 ADMM)
 //
-//   状態 x = [phi, theta, p, q, r]^T   (NX = 5)
+//   状態 x = [phi, theta, p, q, r, a_p, a_q, a_r]^T (NX = 8)
+//   a_* は最終 PWM duty から伝播したモータ由来角加速度 [rad/s^2]
 //   入力 Δu = 姿勢補正 [du_fr, ...]^T (NU = 6, 加算合成: duty = u_hover + Δu)
 //   ホライズン N (mpc::N), サンプリング dt (mpc::dt)
 //
@@ -183,9 +184,9 @@ void nmpc_warmup(NmpcContext &ctx);
 
 // メイン関数: 1 周期分の RTI を実行し、最適入力の先頭ブロック U_opt を返す
 //
-//   x0     : EKF 推定の現在状態 [phi, theta, p, q, r]
-//   X_ref  : 参照軌跡 (NX_TOTAL = NX*N)
-//   U_ref  : 参照入力 (NU_TOTAL = NU*N)。加算合成では 0 (Δu_ref = 0)
+//   x0     : 現在状態 [phi, theta, p, q, r, a_p, a_q, a_r]
+//   X_ref  : 参照軌跡 (NX_TOTAL = 96 at N=12)
+//   U_ref  : 参照入力 (NU_TOTAL = 72 at N=12)。加算合成では 0 (Δu_ref = 0)
 //   u_hover: ホバー baseline duty。Box 制約 Δu ∈ [-u_hover, U_duty_max-u_hover]
 //   U_opt  : 出力。最適化結果の先頭 NU 要素 (姿勢補正 Δu)
 //   cost_o : 評価値 J(Δu*) を返す
