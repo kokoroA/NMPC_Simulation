@@ -1,0 +1,87 @@
+--- /Users/kokoro/Documents/research_project/program/pico/pico-sdk2/pico-sdk/Benzen_NMPC/nmpc.cpp	2026-10-08 17:28:20
++++ fw_diag/nmpc.cpp	2026-10-09 20:41:26
+@@ -695,6 +695,76 @@
+     ctx.diag = {};
+ }
+ 
++// ==== SIL 診断（scratchpad の複製のみ）: 差分更新した Su/H と厳密値の比較 ====
++#include <cstdio>
++#include <cstdlib>
++static FILE *g_diag_fp = nullptr;
++static long g_diag_n = 0;
++static void sil_su_diag(const NmpcContext &ctx, const StateVec &x0, const XStackVec &X_ref,
++                        const UStackVec &U_ref, const UStackVec &U_lin)
++{
++    if (!g_diag_fp) {
++        const char *fn = getenv("SIL_DIAG_FILE");
++        if (!fn) return;
++        g_diag_fp = fopen(fn, "w");
++        if (!g_diag_fp) return;
++        fprintf(g_diag_fp, "n,reset,csr,e_su,e_sx,up_frac,up_frac_ex,e_h,cos_c,cos_d_cur,cos_d_hold,e_u0_cur,e_u0_hold,u0n_ex,mr_cur,mr_hold,mr_ex,mp_cur,mp_hold,mp_ex,s_roll,s_pitch,dsu_rel,rank1_frac,sx_share,e_stale\n");
++    }
++    static NmpcContext ex;
++    ex = ctx;
++    full_rebuild_sx_su(ex, x0, U_lin);
++    full_rebuild_chol(ex);
++    const CostDiag &cd = cost_diag();
++    auto negc = [&](const SxMat &Sx, const SuMat &Su) {
++        XStackVec dx = Sx * x0 - X_ref;
++        XStackVec qdx = -(cd.qbar.cwiseProduct(dx));
++        UStackVec r = Su.transpose() * qdx;
++        r += cd.rbar.cwiseProduct(U_ref);
++        return r;
++    };
++    auto upper = [](const SuMat &Su) {
++        double up = 0, all = 0;
++        for (int k = 0; k < mpc::N; ++k) for (int j = 0; j < mpc::N; ++j) {
++            double f = Su.block<mpc::NX, mpc::NU>(k * mpc::NX, j * mpc::NU).squaredNorm();
++            all += f; if (j > k) up += f;
++        }
++        return all > 0 ? sqrt(up / all) : 0.0;
++    };
++    UStackVec nc_cur = negc(ctx.Sx, ctx.Su), nc_ex = negc(ex.Sx, ex.Su);
++    UStackVec d_cur = ctx.llt.solve(nc_cur);      // 現行（Su も H も差分更新したもの）
++    UStackVec d_hold = ctx.llt.solve(nc_ex);      // 厳密 Su・今の（古い/更新済み）H
++    UStackVec d_ex = ex.llt.solve(nc_ex);         // 厳密 Su・厳密 H
++    HMat Hc = ctx.llt.reconstructedMatrix(), He = ex.llt.reconstructedMatrix();
++    auto cosv = [](const UStackVec &a, const UStackVec &b) { return a.dot(b) / (a.norm() * b.norm() + 1e-30f); };
++    const float KX[6] = {0.085f, 0.085f, 0.f, 0.f, -0.085f, -0.085f};
++    const float KY[6] = {0.050f, -0.050f, 0.10f, -0.10f, 0.050f, -0.050f};
++    auto mom = [&](const UStackVec &d, const float *k, float sg) { float m = 0; for (int j = 0; j < 6; ++j) m += sg * k[j] * d(j); return m; };
++    Eigen::Matrix<float, 6, 1> a = d_cur.head<6>() - d_ex.head<6>(), b = d_hold.head<6>() - d_ex.head<6>();
++    const float sr = 4.f * (x0(0) - X_ref(0)) + x0(2), sp = 4.f * (x0(1) - X_ref(1)) + x0(3);
++    static SuMat Su_prev_ex; static bool have_prev = false; static StateVec x0p; static UStackVec ulp;
++    double dsu_rel = 0, r1 = 0, sxs = 0;
++    if (have_prev) {
++        Eigen::MatrixXd dS = (ex.Su - Su_prev_ex).cast<double>();
++        Eigen::JacobiSVD<Eigen::MatrixXd> svd(dS);
++        Eigen::VectorXd sv = svd.singularValues();
++        dsu_rel = dS.norm() / ex.Su.norm();
++        r1 = sv.squaredNorm() > 0 ? sv(0) * sv(0) / sv.squaredNorm() : 0;
++        double nx = (x0 - x0p).squaredNorm(), nu = (U_lin - ulp).squaredNorm();
++        sxs = (nx + nu) > 0 ? nx / (nx + nu) : 0;
++    }
++    Su_prev_ex = ex.Su; have_prev = true; x0p = x0; ulp = U_lin;
++    static SuMat Su_at_reset; if (ctx.last_was_reset) Su_at_reset = ex.Su;
++    const double e_stale = (ex.Su - Su_at_reset).norm() / ex.Su.norm();
++    fprintf(g_diag_fp, "%ld,%d,%d,%.5g,%.5g,%.5g,%.5g,%.5g,%.6g,%.6g,%.6g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g,%.5g\n",
++            g_diag_n++, ctx.last_was_reset ? 1 : 0, ctx.cycles_since_reset,
++            (ctx.Su - ex.Su).norm() / ex.Su.norm(), (ctx.Sx - ex.Sx).norm() / ex.Sx.norm(),
++            upper(ctx.Su), upper(ex.Su), (Hc - He).norm() / He.norm(),
++            cosv(nc_cur, nc_ex), cosv(d_cur, d_ex), cosv(d_hold, d_ex),
++            a.norm(), b.norm(), d_ex.head<6>().norm(),
++            mom(d_cur, KY, -1.f), mom(d_hold, KY, -1.f), mom(d_ex, KY, -1.f),
++            mom(d_cur, KX, 1.f), mom(d_hold, KX, 1.f), mom(d_ex, KX, 1.f), sr, sp, dsu_rel, r1, sxs, e_stale);
++}
++
+ void nmpc_step(NmpcContext &ctx,
+                const StateVec &x0,
+                const XStackVec &X_ref,
+@@ -800,6 +870,7 @@
+ 
+     ctx.diag.cycles_since_reset = ctx.cycles_since_reset;
+ 
++    sil_su_diag(ctx, x0, X_ref, U_ref, U_lin);
+ #if NMPC_LEGACY_SOLVER
+     compute_neg_gradient_legacy(ctx, x0, X_ref, U_ref, U_lin);
+ #else

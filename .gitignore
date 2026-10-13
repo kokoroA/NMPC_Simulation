@@ -13,3 +13,9 @@ __pycache__/
 # Claude Code のワークツリー実体（設定・フックは追跡するがここは除外）
 .claude/worktrees/
 .claude/settings.local.json
+
+# SIL のビルド成果物（ホストでファームを .dylib にビルドしたもの。環境ごとに作り直す）
+program/sil_nmpc/build/
+# 実験の生データ（1 本 1 npz。合計で数百 MB になるので追跡しない。再現手順は各 results/*/README.md）
+program/sil_nmpc/results/**/*.npz
+program/NMPC_simulation/img/**/*.npz

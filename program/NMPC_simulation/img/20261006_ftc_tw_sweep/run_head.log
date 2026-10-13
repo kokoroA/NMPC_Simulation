@@ -1,0 +1,205 @@
+/Users/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/NMPC_simulation/img/20261006_ftc_tw_sweep/nmpc_simulation_HEAD_46a71bc.py:1344: UserWarning: Glyph 20803 (\N{CJK UNIFIED IDEOGRAPH-5143}) missing from font(s) DejaVu Sans.
+  fig.tight_layout(rect=[0, 0, 1, 0.96])
+/Users/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/NMPC_simulation/img/20261006_ftc_tw_sweep/nmpc_simulation_HEAD_46a71bc.py:1344: UserWarning: Glyph 12398 (\N{HIRAGANA LETTER NO}) missing from font(s) DejaVu Sans.
+  fig.tight_layout(rect=[0, 0, 1, 0.96])
+/Users/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/NMPC_simulation/img/20261006_ftc_tw_sweep/nmpc_simulation_HEAD_46a71bc.py:1344: UserWarning: Glyph 20516 (\N{CJK UNIFIED IDEOGRAPH-5024}) missing from font(s) DejaVu Sans.
+  fig.tight_layout(rect=[0, 0, 1, 0.96])
+
+--- Running: 元の値 T2.725_m200  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.0431 rad, RMS theta=0.0635 rad, RMS z_err=0.2941 m
+  角速度ピーク p=0.084, q=0.193, r=0.371 rad/s, peak |w|=0.585 m/s
+  サチュ率    20.54 %
+  NMPC iter   mean=2792.5 us, p50=3225.6 us, p99=4329.4 us
+  → 制御ループ実行可能周波数(mean) ≈ 358 Hz (目標 100 Hz)
+RESULT 元の値 T2.725_m200 seed=42 T/W=7.54 crashed=False t_fail=nan 
+
+--- Running: 元の値 T2.725_m200  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.0401 rad, RMS theta=0.0602 rad, RMS z_err=0.2982 m
+  角速度ピーク p=0.080, q=0.172, r=0.334 rad/s, peak |w|=0.643 m/s
+  サチュ率    20.37 %
+  NMPC iter   mean=3285.6 us, p50=3864.8 us, p99=5730.5 us
+  → 制御ループ実行可能周波数(mean) ≈ 304 Hz (目標 100 Hz)
+RESULT 元の値 T2.725_m200 seed=7 T/W=7.54 crashed=False t_fail=nan 
+
+--- Running: 元の値 T2.725_m200  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.0473 rad, RMS theta=0.0693 rad, RMS z_err=0.2932 m
+  角速度ピーク p=0.086, q=0.167, r=0.404 rad/s, peak |w|=0.526 m/s
+  サチュ率    21.68 %
+  NMPC iter   mean=3468.9 us, p50=3969.0 us, p99=5766.4 us
+  → 制御ループ実行可能周波数(mean) ≈ 288 Hz (目標 100 Hz)
+RESULT 元の値 T2.725_m200 seed=123 T/W=7.54 crashed=False t_fail=nan 
+
+--- Running: T1.50_m230  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.0769 rad, RMS theta=0.1071 rad, RMS z_err=0.3360 m
+  角速度ピーク p=0.120, q=0.270, r=0.579 rad/s, peak |w|=0.550 m/s
+  サチュ率    15.87 %
+  NMPC iter   mean=3521.2 us, p50=3999.8 us, p99=5954.9 us
+  → 制御ループ実行可能周波数(mean) ≈ 284 Hz (目標 100 Hz)
+RESULT T1.50_m230 seed=42 T/W=3.61 crashed=False t_fail=nan 
+
+--- Running: T1.50_m230  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=41回, sim 時間=15.00s
+  追従誤差   RMS phi=0.1770 rad, RMS theta=0.1790 rad, RMS z_err=0.3210 m
+  角速度ピーク p=0.744, q=0.950, r=1.321 rad/s, peak |w|=0.528 m/s
+  サチュ率    19.56 %
+  NMPC iter   mean=1944.6 us, p50=1808.1 us, p99=4455.7 us
+  → 制御ループ実行可能周波数(mean) ≈ 514 Hz (目標 100 Hz)
+RESULT T1.50_m230 seed=7 T/W=3.61 crashed=False t_fail=nan 
+
+--- Running: T1.50_m230  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.0771 rad, RMS theta=0.1074 rad, RMS z_err=0.3348 m
+  角速度ピーク p=0.118, q=0.247, r=0.570 rad/s, peak |w|=0.471 m/s
+  サチュ率    16.94 %
+  NMPC iter   mean=3567.7 us, p50=3980.6 us, p99=7325.3 us
+  → 制御ループ実行可能周波数(mean) ≈ 280 Hz (目標 100 Hz)
+RESULT T1.50_m230 seed=123 T/W=3.61 crashed=False t_fail=nan 
+
+--- Running: T1.00_m230  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.1255 rad, RMS theta=0.1603 rad, RMS z_err=0.3261 m
+  角速度ピーク p=0.206, q=0.330, r=0.872 rad/s, peak |w|=0.485 m/s
+  サチュ率    11.40 %
+  NMPC iter   mean=3379.7 us, p50=3763.1 us, p99=8158.9 us
+  → 制御ループ実行可能周波数(mean) ≈ 296 Hz (目標 100 Hz)
+RESULT T1.00_m230 seed=42 T/W=2.41 crashed=False t_fail=nan 
+
+--- Running: T1.00_m230  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=33回, sim 時間=15.00s
+  追従誤差   RMS phi=0.2813 rad, RMS theta=0.2171 rad, RMS z_err=0.3042 m
+  角速度ピーク p=1.226, q=1.022, r=1.935 rad/s, peak |w|=0.461 m/s
+  サチュ率    19.21 %
+  NMPC iter   mean=1710.7 us, p50=1533.7 us, p99=4194.7 us
+  → 制御ループ実行可能周波数(mean) ≈ 585 Hz (目標 100 Hz)
+RESULT T1.00_m230 seed=7 T/W=2.41 crashed=False t_fail=nan 
+
+--- Running: T1.00_m230  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=128回, sim 時間=15.00s
+  追従誤差   RMS phi=0.2437 rad, RMS theta=0.1889 rad, RMS z_err=0.2701 m
+  角速度ピーク p=0.838, q=1.156, r=1.712 rad/s, peak |w|=0.458 m/s
+  サチュ率    17.71 %
+  NMPC iter   mean=2135.9 us, p50=1633.5 us, p99=6341.5 us
+  → 制御ループ実行可能周波数(mean) ≈ 468 Hz (目標 100 Hz)
+RESULT T1.00_m230 seed=123 T/W=2.41 crashed=False t_fail=nan 
+
+--- Running: T0.75_m200  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=40回, sim 時間=15.00s
+  追従誤差   RMS phi=0.2982 rad, RMS theta=0.2373 rad, RMS z_err=0.2748 m
+  角速度ピーク p=0.878, q=0.802, r=1.547 rad/s, peak |w|=0.400 m/s
+  サチュ率    18.20 %
+  NMPC iter   mean=2096.2 us, p50=1689.5 us, p99=7225.7 us
+  → 制御ループ実行可能周波数(mean) ≈ 477 Hz (目標 100 Hz)
+RESULT T0.75_m200 seed=42 T/W=2.08 crashed=False t_fail=nan 
+
+--- Running: T0.75_m200  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=26回, sim 時間=15.00s
+  追従誤差   RMS phi=0.2799 rad, RMS theta=0.2386 rad, RMS z_err=0.2581 m
+  角速度ピーク p=0.920, q=0.947, r=1.736 rad/s, peak |w|=0.557 m/s
+  サチュ率    20.89 %
+  NMPC iter   mean=1723.9 us, p50=1567.4 us, p99=4118.2 us
+  → 制御ループ実行可能周波数(mean) ≈ 580 Hz (目標 100 Hz)
+RESULT T0.75_m200 seed=7 T/W=2.08 crashed=False t_fail=nan 
+
+--- Running: T0.75_m200  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=590回, sim 時間=15.00s
+  追従誤差   RMS phi=0.3101 rad, RMS theta=0.2378 rad, RMS z_err=0.3263 m
+  角速度ピーク p=0.740, q=0.887, r=1.323 rad/s, peak |w|=0.563 m/s
+  サチュ率    20.14 %
+  NMPC iter   mean=2936.3 us, p50=2043.3 us, p99=9287.7 us
+  → 制御ループ実行可能周波数(mean) ≈ 341 Hz (目標 100 Hz)
+RESULT T0.75_m200 seed=123 T/W=2.08 crashed=False t_fail=nan 
+
+--- Running: T0.75_m230  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.1924 rad, RMS theta=0.2171 rad, RMS z_err=0.3062 m
+  角速度ピーク p=0.361, q=0.424, r=1.174 rad/s, peak |w|=0.429 m/s
+  サチュ率    11.20 %
+  NMPC iter   mean=3308.3 us, p50=3631.1 us, p99=6736.1 us
+  → 制御ループ実行可能周波数(mean) ≈ 302 Hz (目標 100 Hz)
+RESULT T0.75_m230 seed=42 T/W=1.80 crashed=False t_fail=nan 
+
+--- Running: T0.75_m230  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=576回, sim 時間=15.00s
+  追従誤差   RMS phi=0.3724 rad, RMS theta=0.2346 rad, RMS z_err=0.6303 m
+  角速度ピーク p=0.586, q=1.100, r=1.241 rad/s, peak |w|=1.042 m/s
+  サチュ率    31.96 %
+  NMPC iter   mean=2716.4 us, p50=2203.7 us, p99=5044.8 us
+  → 制御ループ実行可能周波数(mean) ≈ 368 Hz (目標 100 Hz)
+RESULT T0.75_m230 seed=7 T/W=1.80 crashed=False t_fail=nan 
+
+--- Running: T0.75_m230  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.1933 rad, RMS theta=0.2167 rad, RMS z_err=0.3041 m
+  角速度ピーク p=0.373, q=0.425, r=1.174 rad/s, peak |w|=0.355 m/s
+  サチュ率    11.20 %
+  NMPC iter   mean=3058.2 us, p50=3457.0 us, p99=5773.3 us
+  → 制御ループ実行可能周波数(mean) ≈ 327 Hz (目標 100 Hz)
+RESULT T0.75_m230 seed=123 T/W=1.80 crashed=False t_fail=nan 
+
+--- Running: T0.75_m285  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.4108 rad, RMS theta=0.2373 rad, RMS z_err=4.4458 m
+  角速度ピーク p=0.320, q=0.567, r=0.959 rad/s, peak |w|=1.555 m/s
+  サチュ率    43.12 %
+  NMPC iter   mean=3413.5 us, p50=3767.9 us, p99=7920.6 us
+  → 制御ループ実行可能周波数(mean) ≈ 293 Hz (目標 100 Hz)
+RESULT T0.75_m285 seed=42 T/W=1.46 crashed=True t_fail=7.23 altitude<0
+
+--- Running: T0.75_m285  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=26回, sim 時間=15.00s
+  追従誤差   RMS phi=0.4789 rad, RMS theta=0.2409 rad, RMS z_err=5.3245 m
+  角速度ピーク p=0.648, q=1.224, r=1.188 rad/s, peak |w|=3.050 m/s
+  サチュ率    48.98 %
+  NMPC iter   mean=1638.3 us, p50=1557.9 us, p99=3559.0 us
+  → 制御ループ実行可能周波数(mean) ≈ 610 Hz (目標 100 Hz)
+RESULT T0.75_m285 seed=7 T/W=1.46 crashed=True t_fail=7.05 altitude<0
+
+--- Running: T0.75_m285  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+    [FDI@t=5.000s] M5 η→0.00, u_max[4]→0.00, alive=5, B_eff updated, SR2 reset, bumpless restart (kd_fadein, w_ref ramp, z_ref ramp, i_z×0.50)
+  steps=15000 (dt_sim), NMPC/alt_PID calls=1500, full_rebuild=1005回, sim 時間=15.00s
+  追従誤差   RMS phi=0.4064 rad, RMS theta=0.2354 rad, RMS z_err=4.2273 m
+  角速度ピーク p=0.335, q=0.531, r=0.968 rad/s, peak |w|=1.520 m/s
+  サチュ率    43.22 %
+  NMPC iter   mean=3285.7 us, p50=3621.0 us, p99=5572.4 us
+  → 制御ループ実行可能周波数(mean) ≈ 304 Hz (目標 100 Hz)
+RESULT T0.75_m285 seed=123 T/W=1.46 crashed=True t_fail=7.35 altitude<0
+DONE head

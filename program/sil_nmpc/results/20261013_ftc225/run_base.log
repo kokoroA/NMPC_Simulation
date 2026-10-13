@@ -1,0 +1,56 @@
+m=0.225 FR healthy dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=9/5742 wall=43.8s
+m=0.225 FR air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='接地 t=10.81' fs=0/0 log=(1081, 33) order_bad=12/3182 wall=32.1s
+m=0.225 FR ground dd=0.0 I=1:1:1 w=0.0 shake s0: crash='接地 t=7.71' fs=0/0 log=(771, 33) order_bad=15/2312 wall=28.3s
+m=0.225 MR air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5787 wall=43.7s
+m=0.225 FR air dd=0.0 I=0.8:0.8:0.75 w=0.0 shake s0: crash='接地 t=10.55' fs=0/0 log=(1055, 33) order_bad=12/3104 wall=31.8s
+m=0.225 FR air dd=0.2 I=1:1:1 w=0.0 shake s0: crash='接地 t=10.04' fs=0/0 log=(1004, 33) order_bad=12/2949 wall=31.3s
+m=0.25 FR air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='接地 t=10.40' fs=0/0 log=(1040, 33) order_bad=12/3041 wall=31.4s
+m=0.271 FR air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='接地 t=10.08' fs=0/0 log=(1007, 33) order_bad=12/2967 wall=31.2s
+m=0.285 FR air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='接地 t=9.73' fs=0/0 log=(973, 33) order_bad=12/2845 wall=42.1s
+m=0.225 FR healthy dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=9/5682 wall=60.3s
+m=0.225 FR air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='接地 t=13.56' fs=0/0 log=(1356, 33) order_bad=12/3973 wall=52.0s
+m=0.225 FR ground dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=15/5847 wall=60.6s
+m=0.225 MR air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5754 wall=60.6s
+m=0.225 FR air dd=0.0 I=0.8:0.8:0.75 w=0.0 shake s1: crash='接地 t=11.33' fs=0/0 log=(1133, 33) order_bad=12/3283 wall=48.6s
+m=0.225 FR air dd=0.2 I=1:1:1 w=0.0 shake s1: crash='接地 t=11.63' fs=0/0 log=(1163, 33) order_bad=12/3393 wall=48.8s
+m=0.25 FR air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5772 wall=57.2s
+m=0.271 FR air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='接地 t=16.21' fs=0/0 log=(1621, 33) order_bad=12/4764 wall=42.6s
+m=0.285 FR air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='接地 t=10.47' fs=0/0 log=(1047, 33) order_bad=12/3039 wall=33.6s
+m=0.225 FR healthy dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=0/5661 wall=40.1s
+m=0.225 FR air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='接地 t=11.27' fs=0/0 log=(1127, 33) order_bad=3/3286 wall=28.8s
+m=0.225 FR ground dd=0.0 I=1:1:1 w=0.0 shake s2: crash='接地 t=8.31' fs=0/0 log=(831, 33) order_bad=15/2492 wall=26.0s
+m=0.225 MR air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5754 wall=36.9s
+m=0.225 FR air dd=0.0 I=0.8:0.8:0.75 w=0.0 shake s2: crash='接地 t=10.87' fs=0/0 log=(1087, 33) order_bad=3/3151 wall=28.7s
+m=0.225 FR air dd=0.2 I=1:1:1 w=0.0 shake s2: crash='接地 t=11.04' fs=0/0 log=(1104, 33) order_bad=3/3216 wall=28.2s
+m=0.25 FR air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='接地 t=10.79' fs=0/0 log=(1079, 33) order_bad=3/3134 wall=28.4s
+m=0.271 FR air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='接地 t=10.28' fs=0/0 log=(1028, 33) order_bad=3/2981 wall=28.0s
+m=0.285 FR air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='接地 t=9.84' fs=0/0 log=(984, 33) order_bad=3/2852 wall=27.6s
+m=0.225 FR healthy dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=6/5679 wall=37.6s
+m=0.225 FR air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='接地 t=10.58' fs=0/0 log=(1058, 33) order_bad=9/3088 wall=29.2s
+m=0.225 FR ground dd=0.0 I=1:1:1 w=0.0 shake s3: crash='接地 t=4.88' fs=0/0 log=(488, 33) order_bad=15/1463 wall=23.5s
+m=0.225 MR air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=36.8s
+m=0.225 FR air dd=0.0 I=0.8:0.8:0.75 w=0.0 shake s3: crash='接地 t=10.40' fs=0/0 log=(1040, 33) order_bad=9/3020 wall=28.2s
+m=0.225 FR air dd=0.2 I=1:1:1 w=0.0 shake s3: crash='接地 t=10.05' fs=0/0 log=(1005, 33) order_bad=9/2930 wall=28.0s
+m=0.25 FR air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='接地 t=10.30' fs=0/0 log=(1030, 33) order_bad=9/2993 wall=29.3s
+m=0.271 FR air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='接地 t=9.97' fs=0/0 log=(996, 33) order_bad=9/2865 wall=29.2s
+m=0.285 FR air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='接地 t=9.81' fs=0/0 log=(980, 33) order_bad=6/2826 wall=29.4s
+m=0.225 FR healthy dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=6/5685 wall=43.1s
+m=0.225 FR air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='接地 t=13.96' fs=0/0 log=(1396, 33) order_bad=9/4106 wall=38.9s
+m=0.225 FR ground dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=15/5847 wall=44.4s
+m=0.225 MR air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=9/5766 wall=44.9s
+m=0.225 FR air dd=0.0 I=0.8:0.8:0.75 w=0.0 shake s4: crash='接地 t=12.65' fs=0/0 log=(1265, 33) order_bad=9/3713 wall=37.2s
+m=0.225 FR air dd=0.2 I=1:1:1 w=0.0 shake s4: crash='接地 t=13.99' fs=0/0 log=(1398, 33) order_bad=9/4113 wall=37.8s
+m=0.25 FR air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='接地 t=13.43' fs=0/0 log=(1343, 33) order_bad=9/3932 wall=37.2s
+m=0.271 FR air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=9/5757 wall=43.3s
+m=0.285 FR air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='接地 t=10.10' fs=0/0 log=(1010, 33) order_bad=9/2926 wall=30.3s
+m=0.225 FR healthy dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=12/5727 wall=39.6s
+m=0.225 FR air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='接地 t=18.10' fs=0/0 log=(1809, 33) order_bad=15/5367 wall=39.8s
+m=0.225 FR ground dd=0.0 I=1:1:1 w=0.0 shake s5: crash='接地 t=5.41' fs=0/0 log=(541, 33) order_bad=15/1620 wall=25.1s
+m=0.225 MR air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5787 wall=39.9s
+m=0.225 FR air dd=0.0 I=0.8:0.8:0.75 w=0.0 shake s5: crash='接地 t=13.26' fs=0/0 log=(1326, 33) order_bad=15/3905 wall=34.9s
+m=0.225 FR air dd=0.2 I=1:1:1 w=0.0 shake s5: crash='接地 t=11.91' fs=0/0 log=(1190, 33) order_bad=15/3510 wall=33.6s
+m=0.25 FR air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='接地 t=18.01' fs=0/0 log=(1801, 33) order_bad=15/5344 wall=36.4s
+m=0.271 FR air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='接地 t=10.61' fs=0/0 log=(1061, 33) order_bad=15/3131 wall=29.4s
+m=0.285 FR air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='接地 t=9.98' fs=0/0 log=(998, 33) order_bad=15/2941 wall=27.1s
+m=0.225 FR air dd=0.0 I=1:1:1 w=0.0 ideal s0: crash='接地 t=11.73' fs=0/0 log=(1173, 33) order_bad=0/1418 wall=25.7s
+m=0.225 FR air dd=0.0 I=1:1:1 w=0.0 ideal s1: crash='接地 t=11.73' fs=0/0 log=(1173, 33) order_bad=0/1418 wall=22.9s

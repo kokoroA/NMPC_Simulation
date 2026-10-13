@@ -1,0 +1,12 @@
+off        s42  roll 0.7-1.0s  0.78  1.7-2.0s  0.96 | pitch 0.7-1.0s  0.88 1.7-2.0s  1.06 | vh_max  7.07 m/s drift  38.9 m
+off        s7   roll 0.7-1.0s  0.81  1.7-2.0s  0.94 | pitch 0.7-1.0s  0.96 1.7-2.0s  1.14 | vh_max  8.02 m/s drift  46.2 m
+off        s123 roll 0.7-1.0s  0.86  1.7-2.0s  1.03 | pitch 0.7-1.0s  1.00 1.7-2.0s  1.13 | vh_max  9.04 m/s drift  52.5 m
+full_bf0   s42  roll 0.7-1.0s  0.79  1.7-2.0s  0.96 | pitch 0.7-1.0s  0.88 1.7-2.0s  1.05 | vh_max  3.19 m/s drift  16.2 m
+full_bf0   s7   roll 0.7-1.0s  0.81  1.7-2.0s  0.96 | pitch 0.7-1.0s  0.95 1.7-2.0s  1.13 | vh_max  3.27 m/s drift  18.2 m
+full_bf0   s123 roll 0.7-1.0s  0.86  1.7-2.0s  1.03 | pitch 0.7-1.0s  1.00 1.7-2.0s  1.13 | vh_max  3.63 m/s drift  20.9 m
+full_bf05  s42  roll 0.7-1.0s  0.72  1.7-2.0s  0.37 | pitch 0.7-1.0s  0.78 1.7-2.0s  0.74 | vh_max  1.95 m/s drift   6.2 m
+full_bf05  s7   roll 0.7-1.0s  0.70  1.7-2.0s  0.34 | pitch 0.7-1.0s  0.81 1.7-2.0s  0.74 | vh_max  2.22 m/s drift   8.3 m
+full_bf05  s123 roll 0.7-1.0s  0.72  1.7-2.0s  0.36 | pitch 0.7-1.0s  0.84 1.7-2.0s  0.75 | vh_max  2.16 m/s drift   9.2 m
+full       s42  roll 0.7-1.0s  0.62  1.7-2.0s  0.05 | pitch 0.7-1.0s  0.74 1.7-2.0s  0.51 | vh_max  1.56 m/s drift   4.0 m
+full       s7   roll 0.7-1.0s  0.61  1.7-2.0s -0.02 | pitch 0.7-1.0s  0.72 1.7-2.0s  0.51 | vh_max  1.90 m/s drift   5.3 m
+full       s123 roll 0.7-1.0s  0.61  1.7-2.0s  0.07 | pitch 0.7-1.0s  0.75 1.7-2.0s  0.50 | vh_max  1.66 m/s drift   6.0 m

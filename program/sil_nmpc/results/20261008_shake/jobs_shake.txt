@@ -1,0 +1,72 @@
+--plant old --cond shake --seed 0 --out ../results/20261008_shake/runs/old_s0.npz
+--plant sf --cond shake --seed 0 --out ../results/20261008_shake/runs/sf_s0.npz
+--plant full --cond shake --seed 0 --out ../results/20261008_shake/runs/full_s0.npz
+--plant full --cond shake --seed 0 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s0.npz
+--plant wind --cond shake --seed 0 --out ../results/20261008_shake/runs/wind_s0.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 0 --out ../results/20261008_shake/runs/rp10full_s0.npz
+--plant old --cond shake --seed 1 --out ../results/20261008_shake/runs/old_s1.npz
+--plant sf --cond shake --seed 1 --out ../results/20261008_shake/runs/sf_s1.npz
+--plant full --cond shake --seed 1 --out ../results/20261008_shake/runs/full_s1.npz
+--plant full --cond shake --seed 1 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s1.npz
+--plant wind --cond shake --seed 1 --out ../results/20261008_shake/runs/wind_s1.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 1 --out ../results/20261008_shake/runs/rp10full_s1.npz
+--plant old --cond shake --seed 2 --out ../results/20261008_shake/runs/old_s2.npz
+--plant sf --cond shake --seed 2 --out ../results/20261008_shake/runs/sf_s2.npz
+--plant full --cond shake --seed 2 --out ../results/20261008_shake/runs/full_s2.npz
+--plant full --cond shake --seed 2 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s2.npz
+--plant wind --cond shake --seed 2 --out ../results/20261008_shake/runs/wind_s2.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 2 --out ../results/20261008_shake/runs/rp10full_s2.npz
+--plant old --cond shake --seed 3 --out ../results/20261008_shake/runs/old_s3.npz
+--plant sf --cond shake --seed 3 --out ../results/20261008_shake/runs/sf_s3.npz
+--plant full --cond shake --seed 3 --out ../results/20261008_shake/runs/full_s3.npz
+--plant full --cond shake --seed 3 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s3.npz
+--plant wind --cond shake --seed 3 --out ../results/20261008_shake/runs/wind_s3.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 3 --out ../results/20261008_shake/runs/rp10full_s3.npz
+--plant old --cond shake --seed 4 --out ../results/20261008_shake/runs/old_s4.npz
+--plant sf --cond shake --seed 4 --out ../results/20261008_shake/runs/sf_s4.npz
+--plant full --cond shake --seed 4 --out ../results/20261008_shake/runs/full_s4.npz
+--plant full --cond shake --seed 4 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s4.npz
+--plant wind --cond shake --seed 4 --out ../results/20261008_shake/runs/wind_s4.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 4 --out ../results/20261008_shake/runs/rp10full_s4.npz
+--plant old --cond shake --seed 5 --out ../results/20261008_shake/runs/old_s5.npz
+--plant sf --cond shake --seed 5 --out ../results/20261008_shake/runs/sf_s5.npz
+--plant full --cond shake --seed 5 --out ../results/20261008_shake/runs/full_s5.npz
+--plant full --cond shake --seed 5 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s5.npz
+--plant wind --cond shake --seed 5 --out ../results/20261008_shake/runs/wind_s5.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 5 --out ../results/20261008_shake/runs/rp10full_s5.npz
+--plant old --cond shake --seed 6 --out ../results/20261008_shake/runs/old_s6.npz
+--plant sf --cond shake --seed 6 --out ../results/20261008_shake/runs/sf_s6.npz
+--plant full --cond shake --seed 6 --out ../results/20261008_shake/runs/full_s6.npz
+--plant full --cond shake --seed 6 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s6.npz
+--plant wind --cond shake --seed 6 --out ../results/20261008_shake/runs/wind_s6.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 6 --out ../results/20261008_shake/runs/rp10full_s6.npz
+--plant old --cond shake --seed 7 --out ../results/20261008_shake/runs/old_s7.npz
+--plant sf --cond shake --seed 7 --out ../results/20261008_shake/runs/sf_s7.npz
+--plant full --cond shake --seed 7 --out ../results/20261008_shake/runs/full_s7.npz
+--plant full --cond shake --seed 7 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s7.npz
+--plant wind --cond shake --seed 7 --out ../results/20261008_shake/runs/wind_s7.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 7 --out ../results/20261008_shake/runs/rp10full_s7.npz
+--plant old --cond shake --seed 8 --out ../results/20261008_shake/runs/old_s8.npz
+--plant sf --cond shake --seed 8 --out ../results/20261008_shake/runs/sf_s8.npz
+--plant full --cond shake --seed 8 --out ../results/20261008_shake/runs/full_s8.npz
+--plant full --cond shake --seed 8 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s8.npz
+--plant wind --cond shake --seed 8 --out ../results/20261008_shake/runs/wind_s8.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 8 --out ../results/20261008_shake/runs/rp10full_s8.npz
+--plant old --cond shake --seed 9 --out ../results/20261008_shake/runs/old_s9.npz
+--plant sf --cond shake --seed 9 --out ../results/20261008_shake/runs/sf_s9.npz
+--plant full --cond shake --seed 9 --out ../results/20261008_shake/runs/full_s9.npz
+--plant full --cond shake --seed 9 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s9.npz
+--plant wind --cond shake --seed 9 --out ../results/20261008_shake/runs/wind_s9.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 9 --out ../results/20261008_shake/runs/rp10full_s9.npz
+--plant old --cond shake --seed 10 --out ../results/20261008_shake/runs/old_s10.npz
+--plant sf --cond shake --seed 10 --out ../results/20261008_shake/runs/sf_s10.npz
+--plant full --cond shake --seed 10 --out ../results/20261008_shake/runs/full_s10.npz
+--plant full --cond shake --seed 10 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s10.npz
+--plant wind --cond shake --seed 10 --out ../results/20261008_shake/runs/wind_s10.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 10 --out ../results/20261008_shake/runs/rp10full_s10.npz
+--plant old --cond shake --seed 11 --out ../results/20261008_shake/runs/old_s11.npz
+--plant sf --cond shake --seed 11 --out ../results/20261008_shake/runs/sf_s11.npz
+--plant full --cond shake --seed 11 --out ../results/20261008_shake/runs/full_s11.npz
+--plant full --cond shake --seed 11 --set gust_sigma=0.3 --out ../results/20261008_shake/runs/gust_s11.npz
+--plant wind --cond shake --seed 11 --out ../results/20261008_shake/runs/wind_s11.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/build_rp10 --plant full --cond shake --seed 11 --out ../results/20261008_shake/runs/rp10full_s11.npz

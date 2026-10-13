@@ -1,0 +1,48 @@
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='接地 t=12.69' fs=0/0 log=(1268, 33) order_bad=12/3744 wall=25.1s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5793 wall=30.3s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='接地 t=10.77' fs=0/0 log=(1077, 33) order_bad=12/3136 wall=24.7s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5769 wall=32.2s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='接地 t=11.43' fs=0/0 log=(1143, 33) order_bad=3/3333 wall=23.8s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5751 wall=30.8s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='接地 t=17.48' fs=0/0 log=(1748, 33) order_bad=9/5158 wall=30.3s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=32.4s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='接地 t=10.99' fs=0/0 log=(1099, 33) order_bad=9/3213 wall=25.5s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=12/5775 wall=32.4s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='接地 t=11.08' fs=0/0 log=(1108, 33) order_bad=15/3262 wall=24.8s
+m=0.225 FL air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5793 wall=31.9s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5787 wall=31.5s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5793 wall=31.6s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5754 wall=33.9s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5769 wall=33.7s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5754 wall=32.6s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5751 wall=32.8s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=34.1s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=34.2s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=9/5766 wall=34.2s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=12/5775 wall=33.7s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5787 wall=33.0s
+m=0.225 ML air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5793 wall=33.0s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5787 wall=32.8s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5793 wall=33.4s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5754 wall=35.7s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5769 wall=35.6s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5754 wall=34.1s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5751 wall=34.0s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=34.8s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=34.9s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=9/5766 wall=34.4s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=12/5775 wall=34.2s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5787 wall=33.3s
+m=0.225 RR air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5793 wall=33.2s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5787 wall=33.0s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5793 wall=32.9s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5754 wall=35.2s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5769 wall=35.3s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5754 wall=33.3s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5751 wall=33.3s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=32.0s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=31.1s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=9/5766 wall=30.9s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=12/5775 wall=30.5s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5787 wall=28.1s
+m=0.225 RL air dd=0.0 I=1:1:1 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5793 wall=28.0s

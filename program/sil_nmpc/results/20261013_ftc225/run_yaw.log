@@ -1,0 +1,24 @@
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s0: crash='接地 t=11.51' fs=0/0 log=(1151, 33) order_bad=12/3394 wall=30.5s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5790 wall=38.2s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5751 wall=40.6s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5751 wall=40.8s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5766 wall=38.8s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5766 wall=39.0s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s3: crash='接地 t=10.94' fs=0/0 log=(1094, 33) order_bad=9/3196 wall=31.5s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5763 wall=39.9s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=9/5769 wall=36.8s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=9/5769 wall=36.8s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5793 wall=35.5s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5793 wall=35.7s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5787 wall=35.6s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s0: crash='' fs=0/0 log=(1950, 33) order_bad=12/5787 wall=35.5s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5769 wall=37.4s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s1: crash='' fs=0/0 log=(1950, 33) order_bad=12/5769 wall=38.0s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5769 wall=39.8s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s2: crash='' fs=0/0 log=(1950, 33) order_bad=3/5769 wall=39.1s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5784 wall=38.8s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s3: crash='' fs=0/0 log=(1950, 33) order_bad=9/5784 wall=38.7s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=12/5775 wall=38.2s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s4: crash='' fs=0/0 log=(1950, 33) order_bad=12/5775 wall=37.8s
+m=0.225 FR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5805 wall=36.1s
+m=0.225 MR air dd=0.0 I=1:1:1 Y=3.7:0.69 w=0.0 shake s5: crash='' fs=0/0 log=(1950, 33) order_bad=15/5805 wall=36.0s

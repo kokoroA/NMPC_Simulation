@@ -1,0 +1,205 @@
+"""libbenzen_sil への ctypes バインディング。
+
+実機ファーム(Benzen_new)をホスト上のプロセスとして駆動する。
+"""
+from __future__ import annotations
+
+import ctypes
+import sys
+from pathlib import Path
+
+_LIB_CANDIDATES = ("libbenzen_sil.dylib", "libbenzen_sil.so")
+
+
+def _find_library(build_dir: Path | None = None) -> Path:
+    import os
+    # SIL_BUILD_DIR でアブレーション用ビルド（別ファーム複製）に差し替えられる（2026-10-08）
+    env = os.environ.get("SIL_BUILD_DIR")
+    base = build_dir or (Path(env) if env else Path(__file__).resolve().parent.parent / "build")
+    for name in _LIB_CANDIDATES:
+        p = base / name
+        if p.exists():
+            return p
+    raise FileNotFoundError(f"SIL ライブラリが見つかりません: {base}")
+
+
+_INSTANTIATED = False
+
+
+class Sil:
+    """実機ファームの 1 インスタンス。
+
+    注意: グローバル変数を持つ C++ コードなので、1 プロセスに 1 つだけ。
+    2 個目を作ると 1 個目の続きを掴むだけで、初期化されない。
+    """
+
+    def __init__(self, build_dir: Path | None = None, verbose: bool = False) -> None:
+        global _INSTANTIATED
+        if _INSTANTIATED:
+            raise RuntimeError(
+                "Sil は 1 プロセスに 1 つだけ。ファームはグローバル状態を持つため、"
+                "2 個目は初期化されず 1 個目の続きを掴む。"
+                "別条件で試すならプロセスを分けること。")
+        _INSTANTIATED = True
+        self._lib = ctypes.CDLL(str(_find_library(build_dir)))
+        self._bind()
+        self._lib.sil_set_stdout(ctypes.c_int(1 if verbose else 0))
+        rc = self._lib.sil_init()
+        if rc != 0:
+            raise RuntimeError(f"sil_init() 失敗: rc={rc}")
+
+    def _bind(self) -> None:
+        L = self._lib
+        f3 = ctypes.c_float * 3
+        L.sil_init.restype = ctypes.c_int
+        L.sil_set_stdout.argtypes = [ctypes.c_int]
+        L.sil_set_imu.argtypes = [f3, f3, f3]
+        L.sil_set_range_mm.argtypes = [ctypes.c_uint16]
+        L.sil_set_rc.argtypes = [ctypes.c_uint16 * 18]
+        L.sil_set_arm_flag.argtypes = [ctypes.c_uint8]
+        L.sil_set_flight_mode.argtypes = [ctypes.c_uint8]
+        L.sil_set_pid.argtypes = [ctypes.c_int] + [ctypes.c_float] * 5
+        L.sil_get_duty.argtypes = [ctypes.c_float * 6]
+        L.sil_get_state.argtypes = [ctypes.c_float * 24]
+        L.sil_get_arm_flag.restype = ctypes.c_uint8
+        L.sil_get_flight_mode.restype = ctypes.c_uint8
+        L.sil_get_time_us.restype = ctypes.c_uint64
+        L.sil_get_last_loop_ns.restype = ctypes.c_uint64
+        L.sil_get_last_core1_ns.restype = ctypes.c_uint64
+        # 2026-10-06: Benzen_NMPC 用
+        L.sil_logdata_len.restype = ctypes.c_uint32
+        L.sil_logdata_cols.restype = ctypes.c_uint32
+        L.sil_get_logdata.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_uint32]
+        L.sil_get_status.argtypes = [ctypes.c_uint8 * 6]
+        L.sil_get_logdata_row.argtypes = [ctypes.c_uint32, ctypes.POINTER(ctypes.c_float)]
+        L.sil_set_ftc_target.argtypes = [ctypes.c_int]
+        self._row_buf = (ctypes.c_float * 33)()
+
+    # --- 入力 -------------------------------------------------------------
+    def set_imu(self, acc_mg, gyr_mdps, mag_mgauss) -> None:
+        f3 = ctypes.c_float * 3
+        self._lib.sil_set_imu(f3(*acc_mg), f3(*gyr_mdps), f3(*mag_mgauss))
+
+    def set_range_mm(self, mm: int) -> None:
+        self._lib.sil_set_range_mm(ctypes.c_uint16(int(mm)))
+
+    def set_rc(self, channels) -> None:
+        arr = (ctypes.c_uint16 * 18)()
+        for i, v in enumerate(channels[:18]):
+            arr[i] = int(v)
+        self._lib.sil_set_rc(arr)
+
+    def set_arm_flag(self, v: int) -> None:
+        self._lib.sil_set_arm_flag(ctypes.c_uint8(v))
+
+    # control.hpp のモード定数
+    MODE_NORMAL = 0
+    MODE_AUTO_HORIZONTAL_TURN = 20
+    MODE_AUTO_FIGURE_EIGHT = 21
+    MODE_AUTO_CLIMBING_TURN = 22
+
+    def set_ftc_target(self, motor: int) -> None:
+        """FTC スイッチ（ch5）で止めるモータ。0..5 = FR,FL,MR,ML,RR,RL、-1 = なし。スイッチを入れる前に呼ぶ。"""
+        self._lib.sil_set_ftc_target(ctypes.c_int(int(motor)))
+
+    def set_flight_mode(self, mode: int) -> None:
+        """自動機動モードを開始する（実行時書き込み）。"""
+        self._lib.sil_set_flight_mode(ctypes.c_uint8(mode))
+
+    # sil_set_pid の which
+    PID_PHI, PID_THETA, PID_PSI, PID_P, PID_Q, PID_R = range(6)
+
+    def set_pid(self, which, kp, ti, td=0.0, eta=0.125, h=0.0):
+        """PID ゲインを実行時に差し替える（SIL 専用のチューニング検討用）。
+
+        実機は control_init() で固定。ここで変えても実機には反映されないので、
+        良い値が見つかったら control.cpp を手で直すこと。
+        """
+        self._lib.sil_set_pid(int(which), float(kp), float(ti),
+                              float(td), float(eta), float(h))
+
+
+    # --- 実行 -------------------------------------------------------------
+    def tick(self) -> None:
+        """400Hz を 1 tick 進める（仮想時間 +2500us）。"""
+        self._lib.sil_tick_400hz()
+
+    # --- 出力 -------------------------------------------------------------
+    STATE_FIELDS = (
+        "phi", "theta", "psi",
+        "phi_ref", "theta_ref", "psi_ref",
+        "p", "q", "r",
+        "Pref", "Qref", "Rref",
+        "P_com", "Q_com", "R_com",
+        "T_ref", "T_stick", "altitude",
+        "u_fr", "u_fl", "u_mr", "u_ml", "u_rr", "u_rl",
+    )
+
+    def duty(self) -> list[float]:
+        """[FR, FL, MR, ML, RR, RL]"""
+        arr = (ctypes.c_float * 6)()
+        self._lib.sil_get_duty(arr)
+        return list(arr)
+
+    def state(self) -> dict[str, float]:
+        arr = (ctypes.c_float * 24)()
+        self._lib.sil_get_state(arr)
+        return dict(zip(self.STATE_FIELDS, arr))
+
+    @property
+    def arm_flag(self) -> int:
+        return self._lib.sil_get_arm_flag()
+
+    @property
+    def flight_mode(self) -> int:
+        return self._lib.sil_get_flight_mode()
+
+    @property
+    def time_us(self) -> int:
+        return self._lib.sil_get_time_us()
+
+    DEBUG_FIELDS = ("Ax","Ay","Az","Mx","My","Mz","Xe0","Xe1","Xe2","Xe3","MN","ME","MD","Phi_raw","Theta_raw","Psi_raw",
+                    "Phi_bias","Theta_bias","Psi_bias","T_ref")
+
+    def debug(self):
+        arr = (ctypes.c_float * 20)()
+        self._lib.sil_get_debug(arr)
+        return dict(zip(self.DEBUG_FIELDS, arr))
+
+    def sched_counts(self):
+        """(core1 起動回数, core1 待ち突入回数)"""
+        rel = ctypes.c_uint64(); acq = ctypes.c_uint64()
+        self._lib.sil_get_sched_counts(ctypes.byref(rel), ctypes.byref(acq))
+        return rel.value, acq.value
+
+    @property
+    def last_loop_ns(self) -> int:
+        """直近 tick の core0 実行時間（ホスト実測 ns。実機時間ではない）"""
+        return self._lib.sil_get_last_loop_ns()
+
+    @property
+    def last_core1_ns(self) -> int:
+        return self._lib.sil_get_last_core1_ns()
+
+    # ---- 2026-10-06: Benzen_NMPC 用 -------------------------------------
+    def status(self) -> dict:
+        """Arm_flag, LockMode, 離陸ゲート, フェイルセーフ（ラッチ・原因）, FTC モード。"""
+        buf = (ctypes.c_uint8 * 6)()
+        self._lib.sil_get_status(buf)
+        return dict(arm=buf[0], lock=buf[1], gate=buf[2], fs=buf[3], fs_cause=buf[4], ftc=buf[5])
+
+    def logrow(self, row: int):
+        """Logdata の 1 行（33 列）。"""
+        self._lib.sil_get_logdata_row(int(row), self._row_buf)
+        return list(self._row_buf)
+
+    def logdata(self):
+        """実機ファームの 100Hz ログリング（Logdata）をそのまま返す。shape = (LOGROWS, DATANUM)。"""
+        import numpy as _np
+        n = int(self._lib.sil_logdata_len()); cols = int(self._lib.sil_logdata_cols())
+        buf = (ctypes.c_float * n)()
+        self._lib.sil_get_logdata(buf, n)
+        a = _np.frombuffer(buf, dtype=_np.float32).copy()
+        rows = n // cols
+        return a[:rows * cols].reshape(rows, cols)
+

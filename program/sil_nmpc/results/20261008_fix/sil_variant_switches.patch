@@ -1,0 +1,51 @@
+--- Benzen_NMPC/nmpc.cpp	2026-10-06 12:52:25
++++ fw_var/nmpc.cpp	2026-10-08 16:20:08
+@@ -760,9 +760,21 @@
+         ctx.diag.last_reset_cause = NMPC_REBUILD_NONE;
+         ctx.diag.cnt_tr1_path++;
+ 
++#ifndef SIL_SOLVER_VARIANT
++#define SIL_SOLVER_VARIANT 0
++#endif
++#if SIL_SOLVER_VARIANT == 1
++        // [SIL 比較] Su/Sx を毎周期厳密に作り直す。H（LLT）は周期再構築のまま（TR1/SR2 を通らない）
++        full_rebuild_sx_su(ctx, x0, U_lin);
++        const bool tr1_applied = false;
++#elif SIL_SOLVER_VARIANT == 2
++        // [SIL 比較] 差分更新をしない（Su/Sx/H とも直前のフル再構築のまま）
++        const bool tr1_applied = false;
++#else
+         nonlinear_rollout(x0, U_lin, ctx.scratch.X_nl);
+ 
+         const bool tr1_applied = tr1_update_sx_su(ctx, x0, U_lin, ctx.scratch.X_nl);
++#endif
+         ctx.diag.last_tr1_applied = tr1_applied ? 1u : 0u;
+         if (tr1_applied) {
+             ctx.diag.cnt_tr1_applied++;
+--- Benzen_NMPC/control.cpp	2026-10-06 12:52:25
++++ fw_var/control.cpp	2026-10-08 16:20:08
+@@ -3738,7 +3738,23 @@
+   float dt = 0.01;
+   Omega_m << Wp, Wq, Wr;
+   Z << Ax, Ay, Az, Mx, My, Mz;
+-  ekf(Xp, Xe, P, Z, Omega_m, Q, R, G * dt, Beta, dt);
++#ifndef SIL_EKF_RSCALE
++#define SIL_EKF_RSCALE 1.0f
++#endif
++#ifndef SIL_EKF_GATE
++#define SIL_EKF_GATE 0.0f
++#endif
++  // [SIL 比較] 加速度計の観測雑音 R を倍率 SIL_EKF_RSCALE に、
++  //            さらに |‖a‖−g| > SIL_EKF_GATE [m/s²] の周期は 100 倍にする（GATE=0 で無効）
++  {
++    static Matrix<float, 6, 6> R_used;
++    R_used = R;
++    float k = SIL_EKF_RSCALE;
++    const float an = sqrtf(Ax * Ax + Ay * Ay + Az * Az);
++    if (SIL_EKF_GATE > 0.0f && fabsf(an - 9.80665f) > SIL_EKF_GATE) k *= 100.0f;
++    for (int i = 0; i < 3; ++i) R_used(i, i) = R(i, i) * k;
++    ekf(Xp, Xe, P, Z, Omega_m, Q, R_used, G * dt, Beta, dt);
++  }
+ }
+ 
+ // PID::PID()

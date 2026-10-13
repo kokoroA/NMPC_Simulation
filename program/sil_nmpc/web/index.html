@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benzen_new SIL</title>
+<style>
+  :root {
+    --bg: #f8fafc; --panel: #ffffff; --line: #e2e8f0;
+    --text: #0f172a; --muted: #64748b; --accent: #2563eb;
+    --ok: #16a34a; --warn: #d97706; --bad: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Sans", sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  #status { font-size: 13px; color: var(--muted); }
+  #status.flying { color: var(--ok); font-weight: 600; }
+  .wrap { display: grid; grid-template-columns: 1fr 340px; gap: 14px; padding: 14px; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px;
+  }
+  .card h2 { font-size: 12px; margin: 0 0 10px; color: var(--muted); font-weight: 600;
+             letter-spacing: .04em; text-transform: uppercase; }
+  canvas { width: 100%; display: block; }
+  #view { height: 460px; cursor: grab; }
+  #view:active { cursor: grabbing; }
+  #charts { height: 190px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px;
+          font-variant-numeric: tabular-nums; }
+  td { padding: 3px 0; }
+  td:last-child { text-align: right; font-family: ui-monospace, monospace; }
+  .bars { display: grid; grid-template-columns: 34px 1fr 52px; gap: 6px 8px;
+          align-items: center; font-size: 12px; }
+  .bar { height: 9px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--accent); }
+  kbd { background: #f1f5f9; border: 1px solid var(--line); border-bottom-width: 2px;
+        border-radius: 4px; padding: 1px 5px; font: 11px ui-monospace, monospace; }
+  .keys { font-size: 12px; color: var(--muted); line-height: 2; }
+  .sticks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stick { position: relative; aspect-ratio: 1; background: #f1f5f9;
+           border: 1px solid var(--line); border-radius: 8px; touch-action: none; }
+  .stick > i { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+               border-radius: 50%; background: var(--accent); left: 50%; top: 50%; }
+  .stick > span { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center;
+                  font-size: 10px; color: var(--muted); }
+  button { font: inherit; padding: 6px 12px; border-radius: 7px; cursor: pointer;
+           border: 1px solid var(--line); background: #fff; }
+  button:hover { background: #f8fafc; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Benzen_new SIL — 実機ファームをホストで飛ばす</h1>
+  <span id="status">接続中…</span>
+  <span class="row" style="margin-left:auto">
+    <button id="btnArm" class="primary">アーム (Space)</button>
+    <button id="btnReset">姿勢リセット (R)</button>
+    <button id="btnPause">一時停止 (P)</button>
+    <label style="font-size:12px;color:var(--muted)">速度
+      <input id="speed" type="range" min="0.25" max="3" step="0.25" value="1" style="vertical-align:middle">
+      <span id="speedVal">1.0x</span>
+    </label>
+  </span>
+</header>
+
+<div class="wrap">
+  <div>
+    <div class="card">
+      <h2>3D ビュー（ドラッグで回転・ホイールでズーム）</h2>
+      <div class="row" style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--muted)">表示範囲
+          <select id="viewSpan">
+            <option value="0.34">機体（0.34 m）</option>
+            <option value="10">10 m</option>
+            <option value="50" selected>50 m</option>
+            <option value="150">150 m</option>
+          </select>
+        </label>
+        <label style="font-size:12px;color:var(--muted)">
+          <input id="follow" type="checkbox" checked> 機体を追う
+        </label>
+        <button id="btnTrail">軌跡クリア</button>
+        <span style="margin-left:auto;font-size:12px;color:var(--muted)">自動機動</span>
+        <button data-mode="20">水平旋回</button>
+        <button data-mode="21">8の字</button>
+        <button data-mode="22">上昇旋回</button>
+        <button data-mode="0">停止</button>
+      </div>
+      <canvas id="view"></canvas>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>時系列（直近 20 秒）</h2>
+      <canvas id="charts"></canvas>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>状態</h2>
+      <table id="tbl"></table>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h2>モータ duty</h2>
+      <div class="bars" id="duty"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h2>操縦</h2>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--muted)">
+          スロットル <span id="thrVal" style="font-family:ui-monospace,monospace">0.000</span>
+        </label>
+        <input id="thrSlider" type="range" min="0" max="0.45" step="0.001" value="0" style="width:100%">
+        <div class="row" style="margin-top:6px">
+          <button id="btnHover">ホバー</button>
+          <button id="btnHover2">旋回向け(+5%)</button>
+          <span style="font-size:11px;color:var(--muted)">ホバー窓が狭いので数値指定推奨</span>
+        </div>
+      </div>
+      <div class="sticks">
+        <div class="stick" id="stickL"><i></i><span>スロットル / ラダー</span></div>
+        <div class="stick" id="stickR"><i></i><span>エレベータ / エルロン</span></div>
+      </div>
+      <div class="keys" style="margin-top:10px">
+        <kbd>W</kbd><kbd>S</kbd> スロットル　<kbd>A</kbd><kbd>D</kbd> ラダー<br>
+        <kbd>↑</kbd><kbd>↓</kbd> エレベータ　<kbd>←</kbd><kbd>→</kbd> エルロン<br>
+        <kbd>Space</kbd> アーム　<kbd>R</kbd> 姿勢リセット　<kbd>P</kbd> 一時停止
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

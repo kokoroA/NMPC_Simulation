@@ -1,0 +1,204 @@
+full/shake s0: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=15/5739 wall=45.1s
+full/shake s1: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=45/5745 wall=47.4s
+full/shake_b s0: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=9/5757 wall=46.3s
+full/shake_b s0: crash='' fs=0/0 log=(1950, 33) holds=25 order_bad=9/5730 wall=47.1s
+full/shake_b s0: crash='' fs=0/0 log=(1950, 33) holds=25 order_bad=6/5769 wall=47.4s
+full/shake_b s0: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=15/5751 wall=46.5s
+full/shake_b s0: crash='' fs=0/0 log=(1950, 33) holds=22 order_bad=63/5727 wall=37.4s
+full/shake s0: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5730 wall=37.3s
+full/shake s0: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5730 wall=37.9s
+wind/shake s0: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5754 wall=38.2s
+full/shake s0: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5730 wall=37.9s
+full/shake s0: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5736 wall=38.2s
+wind/shake s0: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5763 wall=31.1s
+full/shake s0: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5736 wall=30.9s
+wind/shake s0: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5760 wall=30.7s
+full/shake_b s1: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=6/5742 wall=32.9s
+full/shake_b s1: crash='' fs=0/0 log=(1950, 33) holds=26 order_bad=9/5727 wall=31.4s
+full/shake_b s1: crash='' fs=0/0 log=(1950, 33) holds=30 order_bad=15/5742 wall=31.5s
+full/shake_b s1: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=6/5697 wall=29.9s
+full/shake_b s1: crash='' fs=0/0 log=(1950, 33) holds=21 order_bad=30/5700 wall=29.4s
+full/shake s1: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5703 wall=29.1s
+full/shake s1: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5706 wall=29.6s
+wind/shake s1: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5736 wall=29.6s
+full/shake s1: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5727 wall=29.4s
+full/shake s1: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5703 wall=29.6s
+wind/shake s1: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5754 wall=29.3s
+full/shake s1: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5754 wall=29.4s
+wind/shake s1: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5763 wall=29.2s
+full/shake_b s2: crash='' fs=0/0 log=(1950, 33) holds=26 order_bad=12/5727 wall=28.3s
+full/shake_b s2: crash='接地 t=8.50' fs=0/0 log=(849, 33) holds=10 order_bad=141/2478 wall=20.4s
+full/shake_b s2: crash='' fs=0/0 log=(1950, 33) holds=27 order_bad=15/5757 wall=28.4s
+full/shake_b s2: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=6/5742 wall=29.3s
+full/shake_b s2: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=12/5724 wall=27.7s
+full/shake s2: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=0/5667 wall=27.4s
+full/shake s2: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=0/5673 wall=27.7s
+wind/shake s2: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=0/5730 wall=27.6s
+full/shake s2: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=0/5691 wall=27.5s
+full/shake s2: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=0/5688 wall=28.1s
+wind/shake s2: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=0/5727 wall=27.9s
+full/shake s2: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=3/5706 wall=28.1s
+wind/shake s2: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=0/5706 wall=28.2s
+full/shake_b s3: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=15/5712 wall=27.9s
+full/shake_b s3: crash='' fs=0/0 log=(1950, 33) holds=22 order_bad=24/5709 wall=28.3s
+full/shake_b s3: crash='' fs=0/0 log=(1950, 33) holds=21 order_bad=9/5700 wall=28.5s
+full/shake_b s3: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=12/5712 wall=28.4s
+full/shake_b s3: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=9/5712 wall=27.7s
+full/shake s3: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5694 wall=28.6s
+full/shake s3: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5688 wall=29.1s
+wind/shake s3: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5733 wall=28.8s
+full/shake s3: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5688 wall=28.4s
+full/shake s3: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5682 wall=28.4s
+wind/shake s3: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5745 wall=28.6s
+full/shake s3: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5700 wall=29.4s
+wind/shake s3: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5739 wall=28.9s
+full/shake_b s4: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=12/5739 wall=29.4s
+full/shake_b s4: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=6/5736 wall=29.6s
+full/shake_b s4: crash='' fs=0/0 log=(1950, 33) holds=26 order_bad=24/5730 wall=28.7s
+full/shake_b s4: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=12/5733 wall=29.8s
+full/shake_b s4: crash='' fs=0/0 log=(1950, 33) holds=29 order_bad=15/5748 wall=29.0s
+full/shake s4: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5691 wall=28.6s
+full/shake s4: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5709 wall=28.9s
+wind/shake s4: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5745 wall=28.9s
+full/shake s4: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5712 wall=28.4s
+full/shake s4: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5730 wall=28.4s
+wind/shake s4: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5748 wall=28.9s
+full/shake s4: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5742 wall=28.9s
+wind/shake s4: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5748 wall=29.5s
+full/shake_b s5: crash='' fs=0/0 log=(1950, 33) holds=25 order_bad=18/5748 wall=29.4s
+full/shake_b s5: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=9/5766 wall=28.5s
+full/shake_b s5: crash='' fs=0/0 log=(1950, 33) holds=22 order_bad=39/5769 wall=28.2s
+full/shake_b s5: crash='' fs=0/0 log=(1950, 33) holds=29 order_bad=108/5742 wall=29.2s
+full/shake_b s5: crash='' fs=0/0 log=(1950, 33) holds=25 order_bad=6/5754 wall=28.8s
+full/shake s5: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=12/5769 wall=27.5s
+full/shake s5: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=12/5733 wall=27.8s
+wind/shake s5: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=12/5754 wall=27.8s
+full/shake s5: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=12/5754 wall=27.6s
+full/shake s5: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=12/5721 wall=28.0s
+wind/shake s5: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=12/5745 wall=28.1s
+full/shake s5: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=12/5748 wall=38.2s
+wind/shake s5: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=12/5745 wall=38.9s
+full/shake_b s6: crash='' fs=0/0 log=(1950, 33) holds=21 order_bad=6/5715 wall=39.1s
+full/shake_b s6: crash='' fs=0/0 log=(1950, 33) holds=25 order_bad=21/5709 wall=39.4s
+full/shake_b s6: crash='' fs=0/0 log=(1950, 33) holds=25 order_bad=9/5748 wall=40.2s
+full/shake_b s6: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=6/5760 wall=39.8s
+full/shake_b s6: crash='' fs=0/0 log=(1950, 33) holds=22 order_bad=18/5709 wall=36.9s
+full/shake s6: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5703 wall=39.1s
+full/shake s6: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5751 wall=40.0s
+wind/shake s6: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5700 wall=39.5s
+full/shake s6: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5697 wall=39.5s
+full/shake s6: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5733 wall=39.9s
+wind/shake s6: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5724 wall=36.0s
+full/shake s6: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5733 wall=34.4s
+wind/shake s6: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5730 wall=33.9s
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+full/shake s7: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5730 wall=28.5s
+full/shake s7: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5727 wall=28.6s
+wind/shake s7: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5757 wall=28.4s
+full/shake s7: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5718 wall=28.4s
+full/shake s7: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5694 wall=28.4s
+wind/shake s7: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5757 wall=28.4s
+full/shake s7: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=3/5739 wall=28.4s
+wind/shake s7: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=3/5730 wall=28.1s
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+full/shake s8: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5718 wall=29.1s
+full/shake s8: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5688 wall=29.4s
+wind/shake s8: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=3/5694 wall=29.4s
+full/shake s8: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5730 wall=29.1s
+full/shake s8: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5712 wall=29.4s
+wind/shake s8: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5730 wall=29.4s
+full/shake s8: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5706 wall=29.3s
+wind/shake s8: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5739 wall=29.3s
+full/shake_b s9: crash='' fs=0/0 log=(1950, 33) holds=22 order_bad=9/5697 wall=29.4s
+full/shake_b s9: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=6/5682 wall=28.2s
+full/shake_b s9: crash='' fs=0/0 log=(1950, 33) holds=27 order_bad=6/5703 wall=27.8s
+full/shake_b s9: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=78/5745 wall=29.7s
+full/shake_b s9: crash='' fs=0/0 log=(1950, 33) holds=22 order_bad=9/5688 wall=29.0s
+full/shake s9: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5667 wall=29.6s
+full/shake s9: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5718 wall=29.8s
+wind/shake s9: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5730 wall=29.9s
+full/shake s9: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5664 wall=29.3s
+full/shake s9: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5724 wall=29.9s
+wind/shake s9: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=9/5733 wall=30.0s
+full/shake s9: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5703 wall=29.5s
+wind/shake s9: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5745 wall=29.6s
+full/shake_b s10: crash='' fs=0/0 log=(1950, 33) holds=24 order_bad=30/5742 wall=29.4s
+full/shake_b s10: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=27/5754 wall=29.4s
+full/shake_b s10: crash='' fs=0/0 log=(1950, 33) holds=27 order_bad=66/5742 wall=28.7s
+full/shake_b s10: crash='' fs=0/0 log=(1950, 33) holds=25 order_bad=36/5757 wall=29.5s
+full/shake_b s10: crash='' fs=0/0 log=(1950, 33) holds=23 order_bad=21/5733 wall=29.3s
+full/shake s10: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5703 wall=30.6s
+full/shake s10: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5691 wall=31.4s
+wind/shake s10: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5700 wall=30.9s
+full/shake s10: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5724 wall=31.2s
+full/shake s10: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5703 wall=30.7s
+wind/shake s10: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5703 wall=30.9s
+full/shake s10: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5757 wall=30.3s
+wind/shake s10: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5733 wall=30.3s
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+
+  ERR s/kokoro/Documents/research_project/.claude/worktrees/external-memory-skills-setup-1568a5/program/sil_nmpc/host/nmpc_flight.py", line 239, in arm_nmpc
+    raise RuntimeError(f"離陸ゲートが開かない {self.sil.status()}")
+RuntimeError: 離陸ゲートが開かない {'arm': 2, 'lock': 2, 'gate': 0, 'fs': 0, 'fs_cause': 0, 'ftc': 0}
+full/shake s11: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5712 wall=28.6s
+full/shake s11: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5736 wall=29.1s
+wind/shake s11: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5727 wall=29.5s
+full/shake s11: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5727 wall=28.7s
+full/shake s11: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5745 wall=27.3s
+wind/shake s11: crash='' fs=0/0 log=(1950, 33) holds=20 order_bad=6/5718 wall=27.1s
+full/shake s11: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5742 wall=22.5s
+wind/shake s11: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=6/5727 wall=22.5s
+finished

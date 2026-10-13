@@ -1,0 +1,250 @@
+
+--- Running: H0_シミュ現状(R1)  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0174 rad, RMS theta=0.0096 rad, RMS z_err=0.0153 m
+  角速度ピーク p=0.052, q=0.057, r=0.087 rad/s, peak |w|=0.139 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1859.9 us, p50=1571.5 us, p99=5528.2 us
+  → 制御ループ実行可能周波数(mean) ≈ 538 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=1.02° θ=0.56°  p の 2–5 Hz 帯=14.9%  du の 5 Hz 超=65.3%  0.95/0 張り付き=0.00%
+
+--- Running: H0_シミュ現状(R1)  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0063 rad, RMS theta=0.0172 rad, RMS z_err=0.0171 m
+  角速度ピーク p=0.062, q=0.053, r=0.126 rad/s, peak |w|=0.165 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1898.3 us, p50=1581.0 us, p99=5116.7 us
+  → 制御ループ実行可能周波数(mean) ≈ 527 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=0.37° θ=1.01°  p の 2–5 Hz 帯=17.7%  du の 5 Hz 超=68.9%  0.95/0 張り付き=0.00%
+
+--- Running: H0_シミュ現状(R1)  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0108 rad, RMS theta=0.0219 rad, RMS z_err=0.0146 m
+  角速度ピーク p=0.051, q=0.056, r=0.072 rad/s, peak |w|=0.132 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1889.2 us, p50=1592.3 us, p99=4569.5 us
+  → 制御ループ実行可能周波数(mean) ≈ 529 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=0.63° θ=1.29°  p の 2–5 Hz 帯=24.9%  du の 5 Hz 超=75.7%  0.95/0 張り付き=0.00%
+
+--- Running: H1_+操縦入力  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=208回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1108 rad, RMS theta=0.0571 rad, RMS z_err=0.0155 m
+  角速度ピーク p=0.618, q=0.552, r=0.097 rad/s, peak |w|=0.142 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1823.2 us, p50=1651.3 us, p99=5369.7 us
+  → 制御ループ実行可能周波数(mean) ≈ 548 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=208 回  制御区間: RMS φ=6.51° θ=3.35°  p の 2–5 Hz 帯=1.4%  du の 5 Hz 超=44.9%  0.95/0 張り付き=0.00%
+
+--- Running: H1_+操縦入力  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=198回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1097 rad, RMS theta=0.0558 rad, RMS z_err=0.0184 m
+  角速度ピーク p=0.615, q=0.576, r=0.121 rad/s, peak |w|=0.165 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1981.5 us, p50=1553.0 us, p99=4583.9 us
+  → 制御ループ実行可能周波数(mean) ≈ 505 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=198 回  制御区間: RMS φ=6.45° θ=3.28°  p の 2–5 Hz 帯=1.2%  du の 5 Hz 超=47.2%  0.95/0 張り付き=0.00%
+
+--- Running: H1_+操縦入力  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=213回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1088 rad, RMS theta=0.0596 rad, RMS z_err=0.0145 m
+  角速度ピーク p=0.692, q=0.510, r=0.072 rad/s, peak |w|=0.131 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1926.6 us, p50=1592.5 us, p99=3968.0 us
+  → 制御ループ実行可能周波数(mean) ≈ 519 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=213 回  制御区間: RMS φ=6.40° θ=3.50°  p の 2–5 Hz 帯=1.1%  du の 5 Hz 超=38.1%  0.95/0 張り付き=0.00%
+
+--- Running: H2_+雑音3倍  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0178 rad, RMS theta=0.0096 rad, RMS z_err=0.0152 m
+  角速度ピーク p=0.053, q=0.065, r=0.087 rad/s, peak |w|=0.139 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1850.7 us, p50=1596.2 us, p99=4514.2 us
+  → 制御ループ実行可能周波数(mean) ≈ 540 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=1.05° θ=0.56°  p の 2–5 Hz 帯=15.4%  du の 5 Hz 超=92.0%  0.95/0 張り付き=0.00%
+
+--- Running: H2_+雑音3倍  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0072 rad, RMS theta=0.0168 rad, RMS z_err=0.0171 m
+  角速度ピーク p=0.070, q=0.065, r=0.131 rad/s, peak |w|=0.165 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1619.9 us, p50=1458.1 us, p99=3119.0 us
+  → 制御ループ実行可能周波数(mean) ≈ 617 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=0.42° θ=0.99°  p の 2–5 Hz 帯=17.0%  du の 5 Hz 超=91.5%  0.95/0 張り付き=0.00%
+
+--- Running: H2_+雑音3倍  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0109 rad, RMS theta=0.0218 rad, RMS z_err=0.0146 m
+  角速度ピーク p=0.057, q=0.061, r=0.076 rad/s, peak |w|=0.132 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1759.7 us, p50=1512.6 us, p99=3424.0 us
+  → 制御ループ実行可能周波数(mean) ≈ 568 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=0.64° θ=1.28°  p の 2–5 Hz 帯=26.5%  du の 5 Hz 超=93.5%  0.95/0 張り付き=0.00%
+
+--- Running: H3_+外乱トルク  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=252回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0805 rad, RMS theta=0.0113 rad, RMS z_err=0.0154 m
+  角速度ピーク p=0.174, q=0.058, r=0.154 rad/s, peak |w|=0.135 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=2054.9 us, p50=1678.8 us, p99=5253.8 us
+  → 制御ループ実行可能周波数(mean) ≈ 487 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=252 回  制御区間: RMS φ=4.68° θ=0.67°  p の 2–5 Hz 帯=18.8%  du の 5 Hz 超=55.6%  0.95/0 張り付き=0.00%
+
+--- Running: H3_+外乱トルク  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=268回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0948 rad, RMS theta=0.0215 rad, RMS z_err=0.0179 m
+  角速度ピーク p=0.283, q=0.059, r=0.194 rad/s, peak |w|=0.166 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=2111.5 us, p50=1845.1 us, p99=5453.3 us
+  → 制御ループ実行可能周波数(mean) ≈ 474 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=268 回  制御区間: RMS φ=5.53° θ=1.26°  p の 2–5 Hz 帯=4.2%  du の 5 Hz 超=57.1%  0.95/0 張り付き=0.00%
+
+--- Running: H3_+外乱トルク  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=268回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0814 rad, RMS theta=0.0242 rad, RMS z_err=0.0158 m
+  角速度ピーク p=0.126, q=0.065, r=0.141 rad/s, peak |w|=0.138 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=2090.6 us, p50=1928.2 us, p99=4735.2 us
+  → 制御ループ実行可能周波数(mean) ≈ 478 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=268 回  制御区間: RMS φ=4.74° θ=1.42°  p の 2–5 Hz 帯=21.0%  du の 5 Hz 超=70.1%  0.95/0 張り付き=0.00%
+
+--- Running: H4_+貨物310g  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0173 rad, RMS theta=0.0096 rad, RMS z_err=0.0162 m
+  角速度ピーク p=0.053, q=0.057, r=0.088 rad/s, peak |w|=0.143 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1599.9 us, p50=1450.5 us, p99=3630.3 us
+  → 制御ループ実行可能周波数(mean) ≈ 625 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=1.02° θ=0.56°  p の 2–5 Hz 帯=14.2%  du の 5 Hz 超=64.5%  0.95/0 張り付き=0.00%
+
+--- Running: H4_+貨物310g  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0063 rad, RMS theta=0.0172 rad, RMS z_err=0.0181 m
+  角速度ピーク p=0.062, q=0.053, r=0.127 rad/s, peak |w|=0.157 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1631.8 us, p50=1455.4 us, p99=3554.2 us
+  → 制御ループ実行可能周波数(mean) ≈ 613 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=0.37° θ=1.01°  p の 2–5 Hz 帯=17.0%  du の 5 Hz 超=68.3%  0.95/0 張り付き=0.00%
+
+--- Running: H4_+貨物310g  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.005/0.005, σ_gyro=0.01, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=20回, sim 時間=20.00s
+  追従誤差   RMS phi=0.0109 rad, RMS theta=0.0219 rad, RMS z_err=0.0155 m
+  角速度ピーク p=0.051, q=0.056, r=0.074 rad/s, peak |w|=0.132 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1619.9 us, p50=1456.1 us, p99=3624.6 us
+  → 制御ループ実行可能周波数(mean) ≈ 617 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=20 回  制御区間: RMS φ=0.64° θ=1.29°  p の 2–5 Hz 帯=24.1%  du の 5 Hz 超=75.2%  0.95/0 張り付き=0.00%
+
+--- Running: H5_全部  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=59回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1428 rad, RMS theta=0.0611 rad, RMS z_err=0.0156 m
+  角速度ピーク p=0.643, q=0.439, r=0.160 rad/s, peak |w|=0.143 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1712.8 us, p50=1463.8 us, p99=4586.2 us
+  → 制御ループ実行可能周波数(mean) ≈ 584 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=59 回  制御区間: RMS φ=8.37° θ=3.59°  p の 2–5 Hz 帯=3.9%  du の 5 Hz 超=55.1%  0.95/0 張り付き=0.00%
+
+--- Running: H5_全部  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=65回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1434 rad, RMS theta=0.0618 rad, RMS z_err=0.0184 m
+  角速度ピーク p=0.677, q=0.490, r=0.247 rad/s, peak |w|=0.156 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1723.2 us, p50=1462.7 us, p99=4253.6 us
+  → 制御ループ実行可能周波数(mean) ≈ 580 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=65 回  制御区間: RMS φ=8.40° θ=3.63°  p の 2–5 Hz 帯=2.1%  du の 5 Hz 超=56.5%  0.95/0 張り付き=0.00%
+
+--- Running: H5_全部  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=64回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1400 rad, RMS theta=0.0589 rad, RMS z_err=0.0170 m
+  角速度ピーク p=0.655, q=0.512, r=0.305 rad/s, peak |w|=0.136 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1668.8 us, p50=1453.9 us, p99=3941.5 us
+  → 制御ループ実行可能周波数(mean) ≈ 599 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=64 回  制御区間: RMS φ=8.20° θ=3.46°  p の 2–5 Hz 帯=4.5%  du の 5 Hz 超=49.6%  0.95/0 張り付き=0.00%
+
+--- Running: H5d0_全部・遅れ補償なし  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=57回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1057 rad, RMS theta=0.0525 rad, RMS z_err=0.0157 m
+  角速度ピーク p=0.813, q=0.654, r=0.136 rad/s, peak |w|=0.141 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1214.3 us, p50=946.9 us, p99=4494.1 us
+  → 制御ループ実行可能周波数(mean) ≈ 824 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=57 回  制御区間: RMS φ=6.21° θ=3.09°  p の 2–5 Hz 帯=10.6%  du の 5 Hz 超=36.5%  0.95/0 張り付き=0.00%
+
+--- Running: H5d0_全部・遅れ補償なし  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=52回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1039 rad, RMS theta=0.0547 rad, RMS z_err=0.0182 m
+  角速度ピーク p=0.890, q=0.686, r=0.200 rad/s, peak |w|=0.156 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1034.5 us, p50=890.4 us, p99=2927.3 us
+  → 制御ループ実行可能周波数(mean) ≈ 967 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=52 回  制御区間: RMS φ=6.10° θ=3.21°  p の 2–5 Hz 帯=5.2%  du の 5 Hz 超=31.4%  0.95/0 張り付き=0.00%
+
+--- Running: H5d0_全部・遅れ補償なし  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=64回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1038 rad, RMS theta=0.0576 rad, RMS z_err=0.0156 m
+  角速度ピーク p=0.811, q=0.622, r=0.375 rad/s, peak |w|=0.134 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1497.7 us, p50=998.9 us, p99=7552.0 us
+  → 制御ループ実行可能周波数(mean) ≈ 668 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=64 回  制御区間: RMS φ=6.10° θ=3.39°  p の 2–5 Hz 帯=5.2%  du の 5 Hz 超=34.1%  0.95/0 張り付き=0.00%
+
+--- Running: H6_全部+効き2倍  (FDI_known=True) ---
+    [noise] ON  seed=42  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=48回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1203 rad, RMS theta=0.0533 rad, RMS z_err=0.0156 m
+  角速度ピーク p=0.921, q=0.783, r=0.567 rad/s, peak |w|=0.143 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1869.8 us, p50=1511.5 us, p99=5239.5 us
+  → 制御ループ実行可能周波数(mean) ≈ 535 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=48 回  制御区間: RMS φ=7.06° θ=3.13°  p の 2–5 Hz 帯=8.5%  du の 5 Hz 超=54.0%  0.95/0 張り付き=0.00%
+
+--- Running: H6_全部+効き2倍  (FDI_known=True) ---
+    [noise] ON  seed=7  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=44回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1062 rad, RMS theta=0.0555 rad, RMS z_err=0.0187 m
+  角速度ピーク p=1.135, q=0.643, r=0.235 rad/s, peak |w|=0.156 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=1801.3 us, p50=1466.3 us, p99=6482.6 us
+  → 制御ループ実行可能周波数(mean) ≈ 555 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=44 回  制御区間: RMS φ=6.23° θ=3.26°  p の 2–5 Hz 帯=7.8%  du の 5 Hz 超=64.3%  0.95/0 張り付き=0.00%
+
+--- Running: H6_全部+効き2倍  (FDI_known=True) ---
+    [noise] ON  seed=123  proc σ_pqr=0.05/0.05/0.05, σ_w=0.1  meas σ_φθ=0.015/0.015, σ_gyro=0.03, σ_zw=0.02/0.05
+  steps=20000 (dt_sim), NMPC/alt_PID calls=2000, full_rebuild=55回, sim 時間=20.00s
+  追従誤差   RMS phi=0.1011 rad, RMS theta=0.0540 rad, RMS z_err=0.0153 m
+  角速度ピーク p=0.934, q=0.688, r=0.122 rad/s, peak |w|=0.135 m/s
+  サチュ率    0.00 %
+  NMPC iter   mean=2123.3 us, p50=1675.5 us, p99=5640.0 us
+  → 制御ループ実行可能周波数(mean) ≈ 471 Hz (目標 100 Hz)
+  [STRESS] 発散=なし  再構築で保持=55 回  制御区間: RMS φ=5.93° θ=3.17°  p の 2–5 Hz 帯=4.5%  du の 5 Hz 超=62.5%  0.95/0 張り付き=0.00%
+config                       墜落       RMSφ°       RMSθ°          角速度峰     p2-5Hz%         張付%      最低高度m
+H0_シミュ現状(R1)               0/3     0.4–1.0     0.6–1.3       3.0–3.5   14.9–24.9     0.0–0.0       1.96
+H1_+操縦入力                   0/3     6.4–6.5     3.3–3.5     35.2–39.7     1.1–1.4     0.0–0.0       1.96
+H2_+雑音3倍                   0/3     0.4–1.0     0.6–1.3       3.5–4.0   15.4–26.5     0.0–0.0       1.96
+H3_+外乱トルク                  0/3     4.7–5.5     0.7–1.4      3.7–16.2    4.2–21.0     0.0–0.0       1.96
+H4_+貨物310g                 0/3     0.4–1.0     0.6–1.3       3.1–3.6   14.2–24.1     0.0–0.0       1.96
+H5_全部                      0/3     8.2–8.4     3.5–3.6     36.9–38.8     2.1–4.5     0.0–0.0       1.96
+H5d0_全部・遅れ補償なし             0/3     6.1–6.2     3.1–3.4     46.5–51.0    5.2–10.6     0.0–0.0       1.96
+H6_全部+効き2倍                 0/3     5.9–7.1     3.1–3.3     52.8–65.1     4.5–8.5     0.0–0.0       1.96
+saved figures

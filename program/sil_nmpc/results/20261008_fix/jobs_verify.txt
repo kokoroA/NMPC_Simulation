@@ -1,0 +1,7 @@
+--plant full --cond shake --seed 0 --out ../results/20261008_fix/verify/fw_shake_s0.npz
+--plant full --cond shake --seed 1 --out ../results/20261008_fix/verify/fw_shake_s1.npz
+--plant full --cond shake --seed 2 --out ../results/20261008_fix/verify/fw_shake_s2.npz
+--plant full --cond shake --seed 4 --set gust_sigma=0.3 --out ../results/20261008_fix/verify/fw_gust_s4.npz
+--plant wind --cond shake --seed 0 --out ../results/20261008_fix/verify/fw_wind_s0.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/b_fw_su0 --plant full --cond shake --seed 0 --out ../results/20261008_fix/verify/fw_su0_shake_s0.npz
+SIL_BUILD_DIR=/private/tmp/claude-501/-Users-kokoro-Documents-research-project--claude-worktrees-external-memory-skills-setup-1568a5/6dee4980-f446-4a77-89da-9e58011d9be1/scratchpad/b_fw_su0 --plant full --cond shake --seed 4 --set gust_sigma=0.3 --out ../results/20261008_fix/verify/fw_su0_gust_s4.npz

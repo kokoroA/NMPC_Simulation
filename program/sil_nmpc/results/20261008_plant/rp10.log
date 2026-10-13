@@ -1,0 +1,6 @@
+full/real s0: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5799 wall=23.1s
+full/real s1: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5814 wall=23.3s
+full/real s2: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=9/5778 wall=23.6s
+full/real s3: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=12/5772 wall=23.9s
+full/real s5: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=12/5823 wall=19.9s
+full/real s4: crash='' fs=0/0 log=(1950, 33) holds=178 order_bad=12/5802 wall=20.5s
